@@ -15,6 +15,32 @@ The project is licensed under **GNU GPL v3 (GPL-3.0-only)**. Third-party code, i
 - A choice between normal and grouped layouts, drawn randomly at startup. Grouped mode fills up to 64 tiles with games from the selected system group.
 - Multi-disk preparation for systems such as PC-88, PC-98, X1, and X68000. See `systems.example/` for supported systems and example core settings.
 
+## Supported Systems
+
+RetroNativeSaver includes example configurations for **38 systems**, covering home consoles, handhelds, arcade hardware, and classic Japanese computers.
+
+| Category          | Systems                                                                                                                                 |
+| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| Nintendo          | NES, Famicom Disk System (FDS), SNES, Nintendo 64, Game Boy, Game Boy Color, Game Boy Advance, Nintendo DS, Nintendo 3DS, GameCube, Wii |
+| Sega              | SG-1000, Master System, Game Gear, Mega Drive / Genesis, Mega-CD / Sega CD, Saturn, Dreamcast                                           |
+| NEC               | PC Engine / TurboGrafx-16, PC Engine CD-ROM², PC-FX                                                                                     |
+| Sony              | PlayStation, PlayStation 2, PSP                                                                                                         |
+| SNK               | Neo Geo CD, Neo Geo Pocket, Neo Geo Pocket Color                                                                                        |
+| Bandai            | WonderSwan, WonderSwan Color                                                                                                            |
+| Other Consoles    | 3DO                                                                                                                                     |
+| Arcade            | FinalBurn Neo (FBNeo), MAME                                                                                                             |
+| Classic Computers | MSX, PC-8801, PC-9801, Sharp X1, Sharp X68000, FM-7 (experimental)                                                                      |
+
+**Compatibility notes**
+
+- Each system requires a compatible libretro core, and some require additional BIOS files.
+- Performance and compatibility vary by core, game, and hardware.
+- Not all systems can run in 64-tile grouped mode.
+- FBNeo grouped mode is disabled by default because of its memory requirements.
+- Nintendo 64 can be resource-intensive, particularly when running multiple instances.
+
+Configuration examples are available in `systems.example/`. Inclusion in this list does not guarantee compatibility with every game or system configuration.
+
 ## Emulating up to 64 games at once
 
 Each tile has an independent child process that loads a libretro core and a ROM, runs the game, and draws its frames in that tile. A 64-tile layout uses 64 game processes. The scheduler handles ROM selection, startup, monitoring, and replacement. It limits concurrent initialization and displays each tile as it becomes ready.
