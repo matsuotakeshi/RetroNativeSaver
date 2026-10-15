@@ -17,6 +17,12 @@ The modified complete source (excluding build artifacts) is in
 Upstream licensing and notices are included there; see also X1_LICENSE.txt.
 This build is separate from the installed RetroArch x1_libretro.dll.
 
+Licensing: this X1 component retains its upstream licenses, including the
+BSD 3-Clause root LICENSE and the individual MIT libretro header notices.
+RetroNativeSaver's GPL-3.0-only declaration does not replace these licenses.
+See [THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md) and
+[third_party/licenses](../third_party/licenses/) for the scope and notices.
+
 The Git repository does not include the compiled DLL. Extract the source ZIP,
 run the command above in its `libretro` directory, and copy the generated DLL
 to this project's `cores/x1_rns_libretro.dll` before running `build.bat`.

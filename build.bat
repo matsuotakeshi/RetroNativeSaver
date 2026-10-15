@@ -30,6 +30,17 @@ if errorlevel 1 (
 )
 
 echo.
+echo Copy license documents and third-party sources...
+copy /y "LICENSE" "dist\RetroNativeSaver\LICENSE" >nul
+if errorlevel 1 exit /b 1
+copy /y "COPYRIGHT" "dist\RetroNativeSaver\COPYRIGHT" >nul
+if errorlevel 1 exit /b 1
+copy /y "THIRD_PARTY_NOTICES.md" "dist\RetroNativeSaver\THIRD_PARTY_NOTICES.md" >nul
+if errorlevel 1 exit /b 1
+xcopy /e /i /y "third_party" "dist\RetroNativeSaver\third_party" >nul
+if errorlevel 1 exit /b 1
+
+echo.
 echo Copy configuration...
 copy /y "update_rom_catalog.bat" "dist\RetroNativeSaver\update_rom_catalog.bat" >nul
 copy /y "test_single_system.bat" "dist\RetroNativeSaver\test_single_system.bat" >nul

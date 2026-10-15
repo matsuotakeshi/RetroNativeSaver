@@ -2,6 +2,8 @@
 
 Windows向けの、複数のゲーム映像をタイル表示するスクリーンセーバーです。libretroコアを各タイルの独立した子プロセスで実行します。現在の版は **v0.21.19** です。
 
+本体は **GNU GPL v3（GPL-3.0-only）** で公開しています。X1/libretroなどの第三者コードには、[個別のライセンス](THIRD_PARTY_NOTICES.md)が適用されます。
+
 ## 主な機能
 
 - 複数モニターへの表示、タイルごとのROM抽選・フェード・周期変更。
@@ -86,4 +88,12 @@ Windows向けの回帰テストを含みます。比較用の旧コードは`tes
 
 実行用の設定・お気に入り・ROM一覧・ログ・save・生成されたタイトル情報は`.gitignore`で除外しています。配布用の設定例は`config.example.json`と`systems.example/`です。元の配布フォルダーにあった個別環境の調査記録は含めていません。
 
-X1コアの第三者ライセンス・著作権表示は`cores/X1_LICENSE.txt`とソースアーカイブ内に保持しています。プロジェクト独自コードのライセンスは未設定です。
+## ライセンス
+
+RetroNativeSaver独自のソースコード・テスト・スクリプト・ドキュメント・設定例などは、別途記載のあるものを除き **GNU General Public License version 3のみ（SPDX: `GPL-3.0-only`）** で提供します。著作権表示と適用範囲は [COPYRIGHT](COPYRIGHT)、ライセンス全文は [LICENSE](LICENSE) を参照してください。ライセンス全文は[GNUの公式本文](https://www.gnu.org/licenses/gpl-3.0.txt)を変更せず収録しています。
+
+本ソフトウェアは無保証です。再配布・改変はGPL v3の条件に従って行えます。
+
+X1の`xmil-libretro`ソースおよび専用変更は、上流のライセンス体系を維持します。ルートLICENSEはBSD 3-Clause、一部libretroヘッダーはMITです。各著作権・許諾・免責表示を保持し、[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)と [third_party/licenses/](third_party/licenses/) に対象と原文をまとめています。外部コアもそれぞれのライセンスに従います。
+
+ビルド時には本体のライセンス文書と第三者コードの文書・ソースアーカイブも配布フォルダーへコピーします。実行ファイルを公開する際は、それに対応する本体のソースとビルド手順も提供してください。
