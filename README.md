@@ -75,6 +75,14 @@ Timing begins when the first video frame is received from each core. Differences
 
 Windows x64, Python, PyInstaller, and the libretro cores, ROMs, and any required BIOS files for your systems. The development environment uses Python 3.14. ROMs, BIOS files, personal saves, favorites, and ROM catalogs are not included in this repository.
 
+## Installation folder and write permissions
+
+**Place the entire application folder in a location writable by the Windows account that runs the screensaver**, such as `%LOCALAPPDATA%\RetroNativeSaver`.
+
+Runtime logs are normally written to `logs/` beside the EXE/SCR. The application also writes favorites and files under `state/`, such as the ROM catalog and blacklist/whitelist. Any configured save directories must be writable as well.
+
+Avoid protected locations such as `Program Files` and `C:\Windows\System32`. Keep the EXE/SCR, `_internal`, and the other accompanying files together, then run `install_saver.bat` from that folder to register the screensaver with Windows.
+
 ## Setup and build
 
 ```powershell

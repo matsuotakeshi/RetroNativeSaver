@@ -75,6 +75,14 @@ RetroNativeSaverには、家庭用ゲーム機、携帯ゲーム機、アーケ�
 
 Windows x64、Python、PyInstaller、および各機種のlibretroコア・ROM・必要なBIOSを用意してください。開発環境ではPython 3.14でテストしています。ROM・BIOS・個人のセーブ・お気に入り・ROM一覧はこのリポジトリに含みません。
 
+## 配置先と書き込み権限
+
+**アプリケーションのフォルダー全体を、スクリーンセーバーを実行するWindowsユーザーが書き込める場所へ配置してください。** 例：`%LOCALAPPDATA%\RetroNativeSaver`。
+
+実行ログは通常、EXE/SCRと同じ場所にある`logs/`へ保存します。また、お気に入りや、ROM一覧・ブラックリスト・ホワイトリストなどの`state/`内のファイルも書き込みます。設定したセーブ先にも書き込み権限が必要です。
+
+`Program Files`や`C:\Windows\System32`など、書き込みが制限される場所への配置は避けてください。EXE/SCR、`_internal`、その他の同梱ファイルをまとめて配置し、そのフォルダーの`install_saver.bat`からWindowsへ登録してください。
+
 ## 初期設定とビルド
 
 ```powershell
