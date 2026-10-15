@@ -1,0 +1,12 @@
+{
+  "native_saver.py": {
+    "sha256": "fb70529fcd2b1ea1b441c2c72bd022a20c1cfea7294621238bee458b957264e3",
+    "functions": [
+      "_empty_persistent_rom_state",
+      "_load_persistent_rom_state",
+      "_save_persistent_rom_state",
+      "_empty_persistent_rom_whitelist",
+      "_load_persistent_rom_whitelist"
+    ]
+  }
+}

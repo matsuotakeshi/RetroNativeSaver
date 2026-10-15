@@ -1,0 +1,38 @@
+{
+  "id": "x68000",
+  "name": "Sharp X68000 (PX68k)",
+  "enabled": true,
+  "rom_dir": "C:/ROMs/x68000",
+  "extensions": [
+    ".2hd",
+    ".88d",
+    ".d88",
+    ".dim",
+    ".dup",
+    ".hdf",
+    ".hdm",
+    ".img",
+    ".xdf",
+    ".zip"
+  ],
+  "content_extensions": [
+    ".2hd",
+    ".88d",
+    ".d88",
+    ".dim",
+    ".dup",
+    ".hdf",
+    ".hdm",
+    ".img",
+    ".xdf"
+  ],
+  "core": "C:/RetroArch-win64/cores/px68k_libretro.dll",
+  "system_dir": "C:/RetroArch-win64/system",
+  "archive_mode": "extract",
+  "validate_archive_contents": true,
+  "disk_boot_mode": "computer_two_drives",
+  "recursive": true,
+  "max_concurrent": 1,
+  "render_backend": "software",
+  "isolated_save_dir": true
+}

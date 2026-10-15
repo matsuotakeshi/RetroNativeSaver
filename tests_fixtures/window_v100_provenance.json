@@ -1,0 +1,65 @@
+[
+  {
+    "file": "legacy_wgl_v096.py",
+    "before_bytes": 167388,
+    "after_bytes": 19217,
+    "source_sha256": "748588e1beed25a26806d90c92f0a6c90573c5504c46933db0ec3761ab4aa282",
+    "retained": "WGLHardwareContext"
+  },
+  {
+    "file": "legacy_wgl_creation_v097.py",
+    "before_bytes": 167446,
+    "after_bytes": 19275,
+    "source_sha256": "088fdbffc10da69f5741d5d5de766180c508f3b83b8f87eeb8c424a4a16f1567",
+    "retained": "WGLHardwareContext"
+  },
+  {
+    "file": "legacy_wgl_shared_v098.py",
+    "before_bytes": 167824,
+    "after_bytes": 19653,
+    "source_sha256": "a0b46e0c3abc25e0b11951b69e5e2788457b7c672889fe698911284a7f0371de",
+    "retained": "WGLHardwareContext"
+  },
+  {
+    "file": "legacy_gdi_v095.py",
+    "before_bytes": 167687,
+    "after_bytes": 25516,
+    "source_sha256": "6ca86f3a4a7c0b3aa29ab69e84c763ec0b63e04da5e71ed3fbbf0528717189e1",
+    "retained": "GDIWindow"
+  },
+  {
+    "file": "legacy_environment_v094.py",
+    "before_bytes": 168163,
+    "after_bytes": 31426,
+    "source_sha256": "7254c200016f555c500399cb80c6ed41153f6d8aceac2c4d8dfc573c9481b6bb",
+    "retained": "LibretroCore"
+  },
+  {
+    "file": "legacy_supervisor_v091.py",
+    "before_bytes": 169673,
+    "after_bytes": 28890,
+    "source_sha256": "42e96475b0aa22e6c27fa4a85b579ff3c5407a90c30026784fd7eb230984fd5c",
+    "retained": "supervisor_main"
+  },
+  {
+    "file": "legacy_supervisor_v092.py",
+    "before_bytes": 168786,
+    "after_bytes": 28003,
+    "source_sha256": "636c7add824db056758859a78724125f7e9c7b055cb0924fa3cf2bcab5eb817e",
+    "retained": "supervisor_main"
+  },
+  {
+    "file": "legacy_watchdog_v093.py",
+    "before_bytes": 168905,
+    "after_bytes": 28122,
+    "source_sha256": "48d5f9c7292eaa66633dc950079a8a191729d89819df0b5ce77d6d3fcee66564",
+    "retained": "supervisor_main"
+  },
+  {
+    "file": "legacy_core_v087.py",
+    "before_bytes": 173703,
+    "after_bytes": 36849,
+    "source_sha256": "7815fd234de12026bdc66d0b6108464acc21cded4315d1988e624866f1526260",
+    "retained": "LibretroCore"
+  }
+]

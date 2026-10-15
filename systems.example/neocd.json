@@ -1,0 +1,25 @@
+{
+  "id": "neocd",
+  "name": "Neo Geo CD",
+  "enabled": true,
+  "rom_dir": "C:/ROMs/neocd",
+  "extensions": [
+    ".chd",
+    ".cue"
+  ],
+  "content_extensions": [
+    ".chd",
+    ".cue"
+  ],
+  "core": "C:/RetroArch-win64/cores/neocd_libretro.dll",
+  "system_dir": "C:/RetroArch-win64/system",
+  "archive_mode": "passthrough",
+  "recursive": true,
+  "max_concurrent": 1,
+  "render_backend": "software",
+  "isolated_save_dir": true,
+  "startup_start_twice": true,
+  "resource_group": "heavy_cd",
+  "resource_weight": 1,
+  "core_options": {}
+}

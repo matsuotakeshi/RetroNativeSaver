@@ -1,0 +1,23 @@
+{
+  "id": "sg1000",
+  "name": "SG-1000",
+  "enabled": true,
+  "rom_dir": "C:/ROMs/sg1000",
+  "extensions": [
+    ".zip",
+    ".sg"
+  ],
+  "content_extensions": [
+    ".sg"
+  ],
+  "core": "C:\\RetroArch-win64\\cores\\gearsystem_libretro.dll",
+  "system_dir": "C:\\RetroArch-win64\\system",
+  "archive_mode": "extract",
+  "recursive": true,
+  "max_concurrent": 2,
+  "render_backend": "software",
+  "exclude_name_contains": [
+    "[BIOS]",
+    "Boot ROM"
+  ]
+}

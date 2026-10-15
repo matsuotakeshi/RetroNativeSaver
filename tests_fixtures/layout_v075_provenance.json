@@ -1,0 +1,10 @@
+{
+  "native_saver.py": {
+    "sha256": "928634d9c52bfe8b7751d5cd6e05eaec0d84bae26a7ea18cb70d838f12a2176d",
+    "functions": [
+      "auto_grid_for_monitor",
+      "build_monitor_slots",
+      "build_windowed_slots"
+    ]
+  }
+}

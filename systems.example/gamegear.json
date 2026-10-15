@@ -1,0 +1,22 @@
+{
+  "id": "gamegear",
+  "name": "Game Gear",
+  "enabled": true,
+  "rom_dir": "C:/ROMs/gamegear",
+  "extensions": [
+    ".zip",
+    ".gg"
+  ],
+  "content_extensions": [
+    ".gg"
+  ],
+  "core": "C:\\RetroArch-win64\\cores\\gearsystem_libretro.dll",
+  "system_dir": "C:\\RetroArch-win64\\system",
+  "archive_mode": "extract",
+  "max_concurrent": 2,
+  "render_backend": "software",
+  "exclude_name_contains": [
+    "[BIOS]",
+    "Boot ROM"
+  ]
+}

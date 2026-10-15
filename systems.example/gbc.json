@@ -1,0 +1,22 @@
+{
+  "id": "gbc",
+  "name": "Game Boy Color",
+  "enabled": true,
+  "rom_dir": "C:/ROMs/gbc",
+  "extensions": [
+    ".zip",
+    ".gbc"
+  ],
+  "content_extensions": [
+    ".gbc"
+  ],
+  "core": "C:\\RetroArch-win64\\cores\\gambatte_libretro.dll",
+  "system_dir": "C:\\RetroArch-win64\\system",
+  "archive_mode": "extract",
+  "max_concurrent": 2,
+  "render_backend": "software",
+  "exclude_name_contains": [
+    "[BIOS]",
+    "Boot ROM"
+  ]
+}

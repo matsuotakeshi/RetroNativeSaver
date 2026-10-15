@@ -1,0 +1,41 @@
+{
+  "id": "n3ds",
+  "name": "Nintendo 3DS",
+  "enabled": true,
+  "rom_dir": "C:/ROMs/n3ds",
+  "extensions": [
+    ".3ds",
+    ".3dsx",
+    ".cci",
+    ".cxi",
+    ".app",
+    ".elf",
+    ".axf"
+  ],
+  "content_extensions": [
+    ".3ds",
+    ".3dsx",
+    ".cci",
+    ".cxi",
+    ".app",
+    ".elf",
+    ".axf"
+  ],
+  "core": "C:\\RetroArch-win64\\cores\\citra_libretro.dll",
+  "system_dir": "C:\\RetroArch-win64\\system",
+  "save_dir": "C:\\RetroArch-win64\\saves",
+  "archive_mode": "passthrough",
+  "recursive": true,
+  "max_concurrent": 1,
+  "render_backend": "opengl",
+  "hw_context_width": 1024,
+  "hw_context_height": 1024,
+  "core_options": {
+    "citra_use_cpu_jit": "enabled",
+    "citra_use_hw_renderer": "enabled",
+    "citra_use_shader_jit": "enabled",
+    "citra_use_hw_shaders": "enabled"
+  },
+  "resource_group": "heavy_cd",
+  "resource_weight": 1
+}

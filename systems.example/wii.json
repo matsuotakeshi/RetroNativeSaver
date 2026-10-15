@@ -1,0 +1,45 @@
+{
+  "id": "wii",
+  "name": "Nintendo Wii",
+  "enabled": true,
+  "rom_dir": "C:/ROMs/wii",
+  "extensions": [
+    ".iso",
+    ".rvz",
+    ".gcz",
+    ".wbfs",
+    ".ciso",
+    ".wia",
+    ".m3u"
+  ],
+  "content_extensions": [
+    ".iso",
+    ".rvz",
+    ".gcz",
+    ".wbfs",
+    ".ciso",
+    ".wia",
+    ".m3u"
+  ],
+  "core": "C:\\RetroArch-win64\\cores\\dolphin_libretro.dll",
+  "system_dir": "C:\\RetroArch-win64\\system",
+  "archive_mode": "passthrough",
+  "recursive": true,
+  "max_concurrent": 1,
+  "render_backend": "glcore",
+  "hw_context_width": 1024,
+  "hw_context_height": 1024,
+  "core_options": {
+    "dolphin_renderer": "Hardware"
+  },
+  "assets_dir": "C:\\RetroArch-win64\\downloads",
+  "isolated_save_dir": true,
+  "process_recycle_required": true,
+  "provide_log_interface": false,
+  "provide_perf_interface": false,
+  "frame_rebind_context": false,
+  "resource_group": "heavy_cd",
+  "resource_weight": 1,
+  "cycle_seconds": 240,
+  "independent_jitter_seconds": 24
+}

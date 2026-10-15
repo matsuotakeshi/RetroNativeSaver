@@ -1,0 +1,28 @@
+{
+  "id": "megadrive",
+  "name": "Mega Drive",
+  "enabled": true,
+  "rom_dir": "C:/ROMs/megadrive",
+  "extensions": [
+    ".zip",
+    ".md",
+    ".gen",
+    ".bin",
+    ".smd"
+  ],
+  "content_extensions": [
+    ".md",
+    ".gen",
+    ".bin",
+    ".smd"
+  ],
+  "core": "C:\\RetroArch-win64\\cores\\picodrive_libretro.dll",
+  "system_dir": "C:\\RetroArch-win64\\system",
+  "archive_mode": "extract",
+  "max_concurrent": 3,
+  "render_backend": "software",
+  "exclude_name_contains": [
+    "[BIOS]",
+    "Boot ROM"
+  ]
+}

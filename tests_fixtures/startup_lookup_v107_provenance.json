@@ -1,0 +1,16 @@
+[
+  {
+    "file": "favorites.py",
+    "function": "favorite_candidates",
+    "start": 55,
+    "end": 96,
+    "sha256": "e8e9e1ed8da1c60c4f934d226e712d71886a140028030026b5f2e037dde644cb"
+  },
+  {
+    "file": "pc88_disks.py",
+    "function": "boot_candidates",
+    "start": 41,
+    "end": 61,
+    "sha256": "c8ce00c244417df2e4c7bbce7c14dce823ef5dd149a977b30a50fd93d726a383"
+  }
+]

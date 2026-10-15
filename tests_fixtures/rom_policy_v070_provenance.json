@@ -1,0 +1,14 @@
+{
+  "native_saver.py": {
+    "sha256": "0be5cc5a153ee58dbba76b5a12f335005caf3a75f36327cc81acd4098a55e9c1",
+    "functions": [
+      "_persistent_entry_for_rom",
+      "_persistent_blacklisted_roms",
+      "_persistent_whitelisted_roms",
+      "_rom_in_name_map",
+      "_apply_persistent_whitelist",
+      "_is_session_runtime_crash",
+      "_record_persistent_rom_failure"
+    ]
+  }
+}

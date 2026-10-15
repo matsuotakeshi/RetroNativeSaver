@@ -1,0 +1,34 @@
+{
+  "id": "fm7",
+  "name": "FM-7 (MAME Current)",
+  "enabled": true,
+  "rom_dir": "C:/ROMs/fm7",
+  "extensions": [
+    ".d77",
+    ".d88",
+    ".dsk",
+    ".imd",
+    ".td0",
+    ".mfi",
+    ".mfm",
+    ".hfe"
+  ],
+  "core": "C:/RetroArch-win64/cores/mame_libretro.dll",
+  "system_dir": "C:/RetroArch-win64/system",
+  "mame_bios_dir": "C:/ROMs/fm7",
+  "mame_machine": "auto",
+  "disk_boot_mode": "computer_two_drives",
+  "recursive": true,
+  "max_concurrent": 1,
+  "resource_group": "heavy_cd",
+  "resource_weight": 1,
+  "render_backend": "software",
+  "isolated_save_dir": true,
+  "core_options": {
+    "mame_read_config": "disabled",
+    "mame_write_config": "disabled",
+    "mame_auto_save": "disabled",
+    "mame_boot_to_osd": "disabled",
+    "mame_boot_to_bios": "disabled"
+  }
+}

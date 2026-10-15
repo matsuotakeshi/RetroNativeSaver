@@ -1,0 +1,24 @@
+{
+  "id": "snes",
+  "name": "Super Famicom / SNES",
+  "enabled": true,
+  "rom_dir": "C:/ROMs/snes",
+  "extensions": [
+    ".zip",
+    ".sfc",
+    ".smc"
+  ],
+  "content_extensions": [
+    ".sfc",
+    ".smc"
+  ],
+  "core": "C:\\RetroArch-win64\\cores\\snes9x_libretro.dll",
+  "system_dir": "C:\\RetroArch-win64\\system",
+  "archive_mode": "extract",
+  "max_concurrent": 3,
+  "render_backend": "software",
+  "exclude_name_contains": [
+    "[BIOS]",
+    "Boot ROM"
+  ]
+}

@@ -1,0 +1,39 @@
+{
+  "id": "psp",
+  "name": "PlayStation Portable",
+  "enabled": true,
+  "rom_dir": "C:/ROMs/psp",
+  "extensions": [
+    ".iso",
+    ".cso",
+    ".pbp",
+    ".chd",
+    ".elf"
+  ],
+  "content_extensions": [
+    ".iso",
+    ".cso",
+    ".pbp",
+    ".chd",
+    ".elf"
+  ],
+  "core": "C:\\RetroArch-win64\\cores\\ppsspp_libretro.dll",
+  "system_dir": "C:\\RetroArch-win64\\system",
+  "save_dir": "C:\\RetroArch-win64\\saves",
+  "archive_mode": "passthrough",
+  "recursive": true,
+  "max_concurrent": 1,
+  "render_backend": "opengl",
+  "hw_context_width": 1024,
+  "hw_context_height": 1024,
+  "core_options": {
+    "ppsspp_cpu_core": "jit",
+    "ppsspp_rendering_mode": "OpenGL",
+    "ppsspp_internal_resolution": "480x272",
+    "ppsspp_frameskip": "0",
+    "ppsspp_auto_frameskip": "disabled"
+  },
+  "process_recycle_required": true,
+  "resource_group": "heavy_cd",
+  "resource_weight": 1
+}

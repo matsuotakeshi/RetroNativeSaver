@@ -1,0 +1,6 @@
+{
+  "native_saver.py": {
+    "sha256": "be684b65ccfd5aa0467d3c3a7cb5636d9259615d325f430e63c1d4ebb341d49e",
+    "scope": "main: catalogs = {} through before preview_mode"
+  }
+}

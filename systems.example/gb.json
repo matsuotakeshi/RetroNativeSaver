@@ -1,0 +1,22 @@
+{
+  "id": "gb",
+  "name": "Game Boy",
+  "enabled": true,
+  "rom_dir": "C:/ROMs/gb",
+  "extensions": [
+    ".zip",
+    ".gb"
+  ],
+  "content_extensions": [
+    ".gb"
+  ],
+  "core": "C:\\RetroArch-win64\\cores\\gambatte_libretro.dll",
+  "system_dir": "C:\\RetroArch-win64\\system",
+  "archive_mode": "extract",
+  "max_concurrent": 1,
+  "render_backend": "software",
+  "exclude_name_contains": [
+    "[BIOS]",
+    "Boot ROM"
+  ]
+}

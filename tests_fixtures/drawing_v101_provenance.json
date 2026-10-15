@@ -1,0 +1,80 @@
+[
+  {
+    "file": "legacy_gdi_v095.py",
+    "before": 25516,
+    "after": 4274,
+    "source_sha256": "21c1bbed794e6691dce6b458c7485ab4fdd2079a612a8bfefbd9fa4500bc749c",
+    "methods": [
+      "_ensure_overlay_fonts",
+      "_fit_inside",
+      "_pack_dib_rows",
+      "draw_frame_to_rect"
+    ]
+  },
+  {
+    "file": "legacy_wgl_v096.py",
+    "before": 19217,
+    "after": 3194,
+    "source_sha256": "5b902cfd211b464bfdaf6060ba18bf7f372ef19f0023cb0bb50158d0fd7d4b56",
+    "methods": [
+      "capture_bgra"
+    ]
+  },
+  {
+    "file": "legacy_wgl_creation_v097.py",
+    "before": 19275,
+    "after": 7405,
+    "source_sha256": "509e1bc4dda38ee8a3ec3d366089c1ddcbf37e3abe3602725616f42b8fc24390",
+    "methods": [
+      "_create_attrib_context",
+      "_create_offscreen_fbo",
+      "create",
+      "make_current"
+    ]
+  },
+  {
+    "file": "legacy_wgl_shared_v098.py",
+    "before": 19653,
+    "after": 5136,
+    "source_sha256": "f01ed53e58df09791f69b8899834641eeea05591e3529293e5c56fac2ca82736",
+    "methods": [
+      "_init_gl_functions",
+      "enable_shared_context"
+    ]
+  },
+  {
+    "file": "legacy_core_v087.py",
+    "before": 36849,
+    "after": 22606,
+    "source_sha256": "a8a9521f7083006f5f4161346cf09c8887a4c96a9fe2f50c2ddaacab494db7b5",
+    "methods": [
+      "_bind_api",
+      "_install_callbacks"
+    ]
+  },
+  {
+    "file": "legacy_environment_v094.py",
+    "before": 31426,
+    "after": 16907,
+    "source_sha256": "e86d4edafbd2ba964bf98820ee847df19d60654c789140e756b0c6ebdfd86314",
+    "methods": [
+      "_install_callbacks",
+      "_receive_video",
+      "_register_hw_render",
+      "_register_perf_interface"
+    ]
+  },
+  {
+    "file": "legacy_frames_v088.py",
+    "before": 30253,
+    "after": 21323,
+    "source_sha256": "90cda4595006b99820b4b8653ce929f625cf3ec410a4b0ad5c5fea55dd9d9d22",
+    "methods": [
+      "_install_callbacks",
+      "_register_hw_render",
+      "_register_perf_interface",
+      "load_game",
+      "run_frame"
+    ]
+  }
+]

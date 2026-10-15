@@ -1,0 +1,21 @@
+{
+  "native_saver.py": {
+    "sha256": "58f80742604732c18704bde2b6b2bb78f93a5eeda0bdba92d8fc34bc1807199c",
+    "functions": [
+      "_title_key",
+      "_load_title_json",
+      "_load_retroarch_playlist_titles",
+      "build_title_maps",
+      "resolve_display_title"
+    ]
+  },
+  "favorite_titles.py": {
+    "sha256": "f98f543cf1921038f0e6891759ec174e632445a063d99e41d0c8ec0e38069b8f",
+    "functions": [
+      "title_key",
+      "title_database",
+      "load_titles",
+      "display_title"
+    ]
+  }
+}

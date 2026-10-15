@@ -1,0 +1,10 @@
+{
+  "native_saver.py": {
+    "sha256": "1806a33b84262603e415475d0136a48c4233c54b1c79c116ce579470c36fbd78",
+    "functions": [
+      "resolve_app_relative_path",
+      "prepare_dolphin_user_config",
+      "start_slot_with_retry"
+    ]
+  }
+}

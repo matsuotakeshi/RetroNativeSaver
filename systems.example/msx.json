@@ -1,0 +1,23 @@
+{
+  "id": "msx",
+  "name": "MSX / MSX2",
+  "enabled": true,
+  "rom_dir": "C:/ROMs/msx",
+  "extensions": [
+    ".zip",
+    ".rom",
+    ".mx1",
+    ".dsk"
+  ],
+  "content_extensions": [
+    ".rom",
+    ".mx1",
+    ".dsk"
+  ],
+  "core": "C:\\RetroArch-win64\\cores\\bluemsx_libretro.dll",
+  "system_dir": "C:\\RetroArch-win64\\system",
+  "archive_mode": "extract",
+  "recursive": true,
+  "max_concurrent": 2,
+  "render_backend": "software"
+}

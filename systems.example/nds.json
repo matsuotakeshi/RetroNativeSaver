@@ -1,0 +1,24 @@
+{
+  "id": "nds",
+  "name": "Nintendo DS",
+  "enabled": true,
+  "rom_dir": "C:/ROMs/nds",
+  "extensions": [
+    ".nds",
+    ".zip"
+  ],
+  "content_extensions": [
+    ".nds"
+  ],
+  "core": "C:\\RetroArch-win64\\cores\\desmume_libretro.dll",
+  "system_dir": "C:\\RetroArch-win64\\system",
+  "archive_mode": "extract",
+  "recursive": true,
+  "max_concurrent": 1,
+  "render_backend": "software",
+  "core_options": {
+    "desmume_opengl_mode": "disabled",
+    "desmume_screens_layout": "top/bottom",
+    "desmume_screens_gap": "0"
+  }
+}

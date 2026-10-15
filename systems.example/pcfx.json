@@ -1,0 +1,30 @@
+{
+  "id": "pcfx",
+  "name": "PC-FX",
+  "enabled": true,
+  "rom_dir": "C:/ROMs/pcfx",
+  "extensions": [
+    ".chd",
+    ".cue",
+    ".ccd",
+    ".toc"
+  ],
+  "content_extensions": [
+    ".chd",
+    ".cue",
+    ".ccd",
+    ".toc"
+  ],
+  "core": "C:/RetroArch-win64/cores/mednafen_pcfx_libretro.dll",
+  "system_dir": "C:/RetroArch-win64/system",
+  "archive_mode": "passthrough",
+  "recursive": true,
+  "max_concurrent": 1,
+  "render_backend": "software",
+  "isolated_save_dir": true,
+  "resource_group": "heavy_cd",
+  "resource_weight": 1,
+  "core_options": {},
+  "cycle_seconds": 180,
+  "independent_jitter_seconds": 18
+}

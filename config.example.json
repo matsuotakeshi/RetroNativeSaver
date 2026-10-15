@@ -1,0 +1,103 @@
+{
+  "systems_dir": "systems",
+  "system_dir": "C:\\RetroArch-win64\\system",
+  "save_dir": "save",
+  "fullscreen": true,
+  "window_width": 1280,
+  "window_height": 720,
+  "mouse_exit_threshold": 12,
+  "startup_retry_attempts": 5,
+  "multi_monitor": true,
+  "cycle_enabled": true,
+  "cycle_seconds": 150,
+  "gap_pixels": 0,
+  "max_slots_per_monitor": 16,
+  "windowed_slot_count": 4,
+  "overlay": {
+    "enabled": true,
+    "system_font_size": 12,
+    "game_font_size": 16,
+    "system_color": "#909090",
+    "game_color": "#B8B8B8",
+    "padding": 4,
+    "margin": 6,
+    "line_gap": 0,
+    "background_alpha": 112
+  },
+  "preview_slot_count": 1,
+  "preview_cycle_enabled": false,
+  "preview_cycle_seconds": 30,
+  "fade_enabled": true,
+  "fade_duration_ms": 800,
+  "supervisor_black_backdrop": true,
+  "runtime_heartbeat_seconds": 10,
+  "session_rom_quarantine_enabled": true,
+  "session_system_crash_limit": 5,
+  "worker_run_hang_timeout_seconds": 20,
+  "worker_start_hang_timeout_seconds": 45,
+  "worker_watchdog_poll_seconds": 0.25,
+  "persistent_rom_blacklist_enabled": true,
+  "persistent_rom_blacklist_threshold_sessions": 2,
+  "persistent_rom_blacklist_file": "state\\persistent_rom_blacklist.json",
+  "persistent_rom_whitelist_enabled": true,
+  "persistent_rom_whitelist_file": "state\\persistent_rom_whitelist.json",
+  "persistent_rom_whitelist_seed_file": "persistent_rom_whitelist.default.json",
+  "resource_groups": {
+    "heavy_cd": {
+      "max_weight": 7
+    }
+  },
+  "independent_slots_enabled": true,
+  "independent_jitter_seconds": 15,
+  "independent_max_fps": 30,
+  "saver_controls_enabled": true,
+  "single_system_mode": {
+    "enabled": true,
+    "max_fps": 25,
+    "normal_weight": 50,
+    "grouped_weight": 50,
+    "groups": [
+      [
+        "megadrive",
+        "megacd"
+      ],
+      [
+        "pcengine",
+        "pcenginecd"
+      ],
+      [
+        "gb",
+        "gbc",
+        "gba"
+      ],
+      [
+        "fds",
+        "nes"
+      ],
+      [
+        "snes"
+      ],
+      [
+        "fbneo"
+      ],
+      [
+        "msx",
+        "x1",
+        "x68000",
+        "pc88",
+        "pc98"
+      ],
+      [
+        "neocd"
+      ]
+    ],
+    "resource_groups": {
+      "heavy_cd": {
+        "max_weight": 64
+      }
+    },
+    "disabled_systems": [
+      "fbneo"
+    ]
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "id": "ngp",
+  "name": "Neo Geo Pocket",
+  "enabled": true,
+  "rom_dir": "C:/ROMs/ngp",
+  "extensions": [
+    ".zip",
+    ".ngp"
+  ],
+  "content_extensions": [
+    ".ngp"
+  ],
+  "core": "C:\\RetroArch-win64\\cores\\mednafen_ngp_libretro.dll",
+  "system_dir": "C:\\RetroArch-win64\\system",
+  "archive_mode": "extract",
+  "max_concurrent": 1,
+  "render_backend": "software",
+  "exclude_name_contains": [
+    "[BIOS]",
+    "Boot ROM"
+  ]
+}

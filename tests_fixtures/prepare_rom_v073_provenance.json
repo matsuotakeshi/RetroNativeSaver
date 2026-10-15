@@ -1,0 +1,8 @@
+{
+  "native_saver.py": {
+    "sha256": "b6a9a64a12e8759d094f9351ff577329a896e4af03158cd0a1a77e61cb6bb2a4",
+    "functions": [
+      "prepare_rom"
+    ]
+  }
+}

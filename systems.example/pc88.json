@@ -1,0 +1,30 @@
+{
+  "id": "pc88",
+  "name": "PC-8801 (QUASI88)",
+  "enabled": true,
+  "rom_dir": "C:/ROMs/pc88",
+  "extensions": [
+    ".d88",
+    ".88d",
+    ".u88",
+    ".m3u"
+  ],
+  "content_extensions": [
+    ".d88",
+    ".88d",
+    ".u88",
+    ".m3u"
+  ],
+  "core": "C:\\RetroArch-win64\\cores\\quasi88_libretro.dll",
+  "system_dir": "C:\\RetroArch-win64\\system",
+  "archive_mode": "passthrough",
+  "disk_boot_mode": "pc88_two_drives",
+  "recursive": true,
+  "max_concurrent": 2,
+  "render_backend": "software",
+  "core_options": {
+    "q88_basic_mode": "N88 V2",
+    "q88_cpu_clock": "4 MHz",
+    "q88_save_to_disk_image": "disabled"
+  }
+}

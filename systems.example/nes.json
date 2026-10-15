@@ -1,0 +1,22 @@
+{
+  "id": "nes",
+  "name": "Nintendo Entertainment System",
+  "enabled": true,
+  "rom_dir": "C:/ROMs/nes",
+  "extensions": [
+    ".zip",
+    ".nes"
+  ],
+  "content_extensions": [
+    ".nes"
+  ],
+  "core": "C:\\RetroArch-win64\\cores\\fceumm_libretro.dll",
+  "system_dir": "C:\\RetroArch-win64\\system",
+  "archive_mode": "extract",
+  "max_concurrent": 3,
+  "render_backend": "software",
+  "exclude_name_contains": [
+    "[BIOS]",
+    "Boot ROM"
+  ]
+}

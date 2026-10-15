@@ -1,0 +1,38 @@
+{
+  "id": "x1",
+  "name": "Sharp X1",
+  "enabled": true,
+  "rom_dir": "C:/ROMs/x1",
+  "extensions": [
+    ".2d",
+    ".2hd",
+    ".88d",
+    ".d88",
+    ".dup",
+    ".dx1",
+    ".hdm",
+    ".tfd",
+    ".xdf",
+    ".zip"
+  ],
+  "content_extensions": [
+    ".2d",
+    ".2hd",
+    ".88d",
+    ".d88",
+    ".dup",
+    ".dx1",
+    ".hdm",
+    ".tfd",
+    ".xdf"
+  ],
+  "core": "cores/x1_rns_libretro.dll",
+  "system_dir": "C:/RetroArch-win64/system",
+  "archive_mode": "extract",
+  "validate_archive_contents": true,
+  "disk_boot_mode": "computer_two_drives",
+  "recursive": true,
+  "max_concurrent": 1,
+  "render_backend": "software",
+  "isolated_save_dir": true
+}

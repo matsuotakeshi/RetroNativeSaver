@@ -1,0 +1,41 @@
+{
+  "id": "mame",
+  "name": "MAME Current",
+  "enabled": true,
+  "rom_dir": "C:/ROMs/mame",
+  "extensions": [
+    ".zip",
+    ".7z",
+    ".cmd"
+  ],
+  "content_extensions": [],
+  "core": "C:\\RetroArch-win64\\cores\\mame_libretro.dll",
+  "system_dir": "C:\\RetroArch-win64\\system",
+  "archive_mode": "passthrough",
+  "recursive": false,
+  "max_concurrent": 1,
+  "render_backend": "software",
+  "core_options": {
+    "mame_rotation_mode": "internal"
+  },
+  "title_db": "metadata/mame_titles.json",
+  "title_sources": [
+    "C:\\RetroArch-win64\\playlists\\*.lpl"
+  ],
+  "title_core_names": [
+    "MAME",
+    "MAME Current",
+    "Arcade (MAME)",
+    "mame_libretro"
+  ],
+  "title_path_roots": [
+    "C:\\ROMs\\mame"
+  ],
+  "exclude_name_contains": [
+    "[BIOS]",
+    "Device"
+  ],
+  "require_title_db_match": true,
+  "resource_group": "heavy_cd",
+  "resource_weight": 1
+}

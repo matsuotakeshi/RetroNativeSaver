@@ -1,0 +1,32 @@
+{
+  "id": "fbneo",
+  "name": "FinalBurn Neo",
+  "enabled": true,
+  "rom_dir": "C:/ROMs/fbneo",
+  "extensions": [
+    ".zip"
+  ],
+  "content_extensions": [],
+  "core": "C:\\RetroArch-win64\\cores\\fbneo_libretro.dll",
+  "system_dir": "C:\\RetroArch-win64\\system",
+  "archive_mode": "passthrough",
+  "max_concurrent": 1,
+  "render_backend": "software",
+  "core_options": {
+    "fbneo-neogeo-mode": "MVS_JAP"
+  },
+  "title_db": "metadata/fbneo_titles.json",
+  "title_sources": [
+    "C:\\RetroArch-win64\\playlists\\*.lpl"
+  ],
+  "title_core_names": [
+    "FinalBurn Neo",
+    "FBNeo",
+    "fbneo_libretro"
+  ],
+  "title_path_roots": [
+    "C:\\ROMs\\arcade"
+  ],
+  "resource_group": "heavy_cd",
+  "resource_weight": 1
+}

@@ -1,0 +1,34 @@
+{
+  "id": "saturn",
+  "name": "Sega Saturn",
+  "enabled": true,
+  "rom_dir": "C:/ROMs/saturn",
+  "extensions": [
+    ".chd",
+    ".cue",
+    ".ccd",
+    ".m3u",
+    ".toc"
+  ],
+  "content_extensions": [
+    ".chd",
+    ".cue",
+    ".ccd",
+    ".m3u",
+    ".toc"
+  ],
+  "core": "C:\\RetroArch-win64\\cores\\mednafen_saturn_libretro.dll",
+  "system_dir": "C:\\RetroArch-win64\\system",
+  "archive_mode": "passthrough",
+  "recursive": true,
+  "max_concurrent": 1,
+  "render_backend": "software",
+  "exclude_name_contains": [
+    "[BIOS]",
+    "Boot ROM"
+  ],
+  "resource_group": "heavy_cd",
+  "resource_weight": 2,
+  "cycle_seconds": 240,
+  "independent_jitter_seconds": 24
+}

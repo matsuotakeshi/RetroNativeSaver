@@ -1,0 +1,22 @@
+{
+  "id": "wonderswan",
+  "name": "WonderSwan",
+  "enabled": true,
+  "rom_dir": "C:/ROMs/wonderswan",
+  "extensions": [
+    ".zip",
+    ".ws"
+  ],
+  "content_extensions": [
+    ".ws"
+  ],
+  "core": "C:\\RetroArch-win64\\cores\\mednafen_wswan_libretro.dll",
+  "system_dir": "C:\\RetroArch-win64\\system",
+  "archive_mode": "extract",
+  "max_concurrent": 1,
+  "render_backend": "software",
+  "exclude_name_contains": [
+    "[BIOS]",
+    "Boot ROM"
+  ]
+}

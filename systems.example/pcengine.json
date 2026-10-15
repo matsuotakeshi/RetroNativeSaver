@@ -1,0 +1,22 @@
+{
+  "id": "pcengine",
+  "name": "PC Engine",
+  "enabled": true,
+  "rom_dir": "C:/ROMs/pcengine",
+  "extensions": [
+    ".zip",
+    ".pce"
+  ],
+  "content_extensions": [
+    ".pce"
+  ],
+  "core": "C:\\RetroArch-win64\\cores\\mednafen_pce_fast_libretro.dll",
+  "system_dir": "C:\\RetroArch-win64\\system",
+  "archive_mode": "extract",
+  "max_concurrent": 3,
+  "render_backend": "software",
+  "exclude_name_contains": [
+    "[BIOS]",
+    "Boot ROM"
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "id": "ngpc",
+  "name": "Neo Geo Pocket Color",
+  "enabled": true,
+  "rom_dir": "C:/ROMs/ngpc",
+  "extensions": [
+    ".zip",
+    ".ngc",
+    ".ngpc"
+  ],
+  "content_extensions": [
+    ".ngc",
+    ".ngpc"
+  ],
+  "core": "C:\\RetroArch-win64\\cores\\mednafen_ngp_libretro.dll",
+  "system_dir": "C:\\RetroArch-win64\\system",
+  "archive_mode": "extract",
+  "max_concurrent": 3,
+  "render_backend": "software",
+  "exclude_name_contains": [
+    "[BIOS]",
+    "Boot ROM"
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "native_saver.py": {
+    "sha256": "c8a933f2370e4ae9ba26f8abc614a3700b595290acf64f82a2bae582f78c67ce",
+    "functions": [
+      "should_exclude_rom",
+      "scan_roms"
+    ]
+  }
+}

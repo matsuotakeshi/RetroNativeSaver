@@ -1,0 +1,4 @@
+# Preserve historical fixture bytes used by regression comparisons.
+* -text
+*.zip binary
+*.ico binary

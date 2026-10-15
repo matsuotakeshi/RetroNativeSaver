@@ -1,0 +1,27 @@
+{
+  "id": "megacd",
+  "name": "Mega-CD",
+  "enabled": true,
+  "rom_dir": "C:/ROMs/megacd",
+  "extensions": [
+    ".chd",
+    ".cue",
+    ".iso"
+  ],
+  "content_extensions": [
+    ".chd",
+    ".cue",
+    ".iso"
+  ],
+  "core": "C:/RetroArch-win64/cores/picodrive_libretro.dll",
+  "system_dir": "C:/RetroArch-win64/system",
+  "archive_mode": "passthrough",
+  "recursive": true,
+  "max_concurrent": 1,
+  "render_backend": "software",
+  "isolated_save_dir": true,
+  "startup_start_twice": true,
+  "core_options": {},
+  "cycle_seconds": 180,
+  "independent_jitter_seconds": 18
+}

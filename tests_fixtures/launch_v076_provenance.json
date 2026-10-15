@@ -1,0 +1,15 @@
+{
+  "native_saver.py": {
+    "sha256": "84b406994e27d615f2e84ccc3d83b6155ceba3daa3de6ddb6a3ac09c92aca291",
+    "functions_or_blocks": [
+      "parse_screensaver_args",
+      "parse_main_args",
+      "parse_rom_list_args",
+      "display_mode",
+      "requested_slot_count",
+      "cycle_settings",
+      "filter_preview_systems",
+      "apply_session_suspensions"
+    ]
+  }
+}

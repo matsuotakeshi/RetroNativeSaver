@@ -1,0 +1,29 @@
+{
+  "id": "ps1",
+  "name": "PlayStation",
+  "enabled": true,
+  "rom_dir": "C:/ROMs/ps1",
+  "extensions": [
+    ".chd",
+    ".cue",
+    ".pbp",
+    ".m3u"
+  ],
+  "content_extensions": [
+    ".chd",
+    ".cue",
+    ".pbp",
+    ".m3u"
+  ],
+  "core": "C:\\RetroArch-win64\\cores\\mednafen_psx_libretro.dll",
+  "system_dir": "C:\\RetroArch-win64\\system",
+  "archive_mode": "passthrough",
+  "recursive": true,
+  "max_concurrent": 1,
+  "render_backend": "software",
+  "core_options": {},
+  "resource_group": "heavy_cd",
+  "resource_weight": 1,
+  "cycle_seconds": 220,
+  "independent_jitter_seconds": 22
+}

@@ -1,0 +1,23 @@
+{
+  "id": "gba",
+  "name": "Game Boy Advance",
+  "enabled": true,
+  "rom_dir": "C:/ROMs/gba",
+  "extensions": [
+    ".zip",
+    ".gba"
+  ],
+  "content_extensions": [
+    ".gba"
+  ],
+  "core": "C:\\RetroArch-win64\\cores\\vbam_libretro.dll",
+  "system_dir": "C:\\RetroArch-win64\\system",
+  "archive_mode": "extract",
+  "max_concurrent": 3,
+  "render_backend": "software",
+  "exclude_name_contains": [
+    "[BIOS]",
+    "Boot ROM"
+  ],
+  "validate_archive_contents": true
+}

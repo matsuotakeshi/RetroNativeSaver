@@ -1,0 +1,32 @@
+{
+  "id": "3do",
+  "name": "3DO",
+  "enabled": true,
+  "rom_dir": "C:/ROMs/3do",
+  "extensions": [
+    ".chd",
+    ".cue",
+    ".iso",
+    ".bin"
+  ],
+  "content_extensions": [
+    ".chd",
+    ".cue",
+    ".iso",
+    ".bin"
+  ],
+  "core": "C:\\RetroArch-win64\\cores\\opera_libretro.dll",
+  "system_dir": "C:\\RetroArch-win64\\system",
+  "archive_mode": "passthrough",
+  "recursive": true,
+  "max_concurrent": 1,
+  "render_backend": "software",
+  "core_options": {
+    "opera_high_resolution": "disabled",
+    "opera_cpu_overclock": "1.0x (12.50Mhz)"
+  },
+  "resource_group": "heavy_cd",
+  "resource_weight": 1,
+  "cycle_seconds": 200,
+  "independent_jitter_seconds": 20
+}

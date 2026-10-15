@@ -1,0 +1,34 @@
+{
+  "id": "n64",
+  "name": "Nintendo 64",
+  "enabled": true,
+  "rom_dir": "C:/ROMs/n64",
+  "extensions": [
+    ".zip",
+    ".z64",
+    ".n64",
+    ".v64",
+    ".bin",
+    ".u1",
+    ".ndd"
+  ],
+  "content_extensions": [
+    ".z64",
+    ".n64",
+    ".v64",
+    ".bin",
+    ".u1",
+    ".ndd"
+  ],
+  "core": "C:\\RetroArch-win64\\cores\\mupen64plus_next_libretro.dll",
+  "system_dir": "C:\\RetroArch-win64\\system",
+  "archive_mode": "extract",
+  "recursive": true,
+  "max_concurrent": 1,
+  "render_backend": "opengl",
+  "hw_context_width": 1024,
+  "hw_context_height": 1024,
+  "core_options": {},
+  "resource_group": "heavy_cd",
+  "resource_weight": 1
+}

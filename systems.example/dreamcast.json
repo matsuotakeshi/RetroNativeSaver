@@ -1,0 +1,42 @@
+{
+  "id": "dreamcast",
+  "name": "Dreamcast",
+  "enabled": true,
+  "rom_dir": "C:/ROMs/dreamcast",
+  "extensions": [
+    ".chd",
+    ".gdi",
+    ".cdi",
+    ".cue",
+    ".m3u"
+  ],
+  "content_extensions": [
+    ".chd",
+    ".gdi",
+    ".cdi",
+    ".cue",
+    ".m3u"
+  ],
+  "core": "C:\\RetroArch-win64\\cores\\flycast_libretro.dll",
+  "system_dir": "C:\\RetroArch-win64\\system",
+  "archive_mode": "passthrough",
+  "recursive": true,
+  "max_concurrent": 1,
+  "render_backend": "opengl",
+  "core_options": {
+    "flycast_internal_resolution": "640x480",
+    "reicast_internal_resolution": "640x480",
+    "flycast_threaded_rendering": "disabled",
+    "reicast_threaded_rendering": "disabled",
+    "flycast_alpha_sorting": "per-triangle (normal)",
+    "reicast_alpha_sorting": "per-triangle (normal)",
+    "flycast_enable_dsp": "disabled",
+    "reicast_enable_dsp": "disabled",
+    "reicast_show_vmu_screen_settings": "disabled",
+    "reicast_show_lightgun_settings": "disabled"
+  },
+  "resource_group": "heavy_cd",
+  "resource_weight": 2,
+  "cycle_seconds": 240,
+  "independent_jitter_seconds": 24
+}

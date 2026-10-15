@@ -1,0 +1,22 @@
+{
+  "id": "mastersystem",
+  "name": "Master System",
+  "enabled": true,
+  "rom_dir": "C:/ROMs/mastersystem",
+  "extensions": [
+    ".zip",
+    ".sms"
+  ],
+  "content_extensions": [
+    ".sms"
+  ],
+  "core": "C:\\RetroArch-win64\\cores\\gearsystem_libretro.dll",
+  "system_dir": "C:\\RetroArch-win64\\system",
+  "archive_mode": "extract",
+  "max_concurrent": 2,
+  "render_backend": "software",
+  "exclude_name_contains": [
+    "[BIOS]",
+    "Boot ROM"
+  ]
+}
