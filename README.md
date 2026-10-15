@@ -1,92 +1,94 @@
+[日本語](README.ja.md) | English
+
 # RetroNativeSaver
 
-Windows向けの、複数のゲーム映像をタイル表示するスクリーンセーバーです。libretroコアを各タイルの独立した子プロセスで実行し、グループ表示では複数モニターに **最大64画面を同時表示** できます。現在の版は **v0.21.19** です。
+A Windows screensaver that displays multiple games in a tiled layout. Each tile runs a libretro core in its own child process. Grouped mode supports **up to 64 simultaneous game displays across multiple monitors**. Current version: **v0.21.19**.
 
-本体は **GNU GPL v3（GPL-3.0-only）** で公開しています。X1/libretroなどの第三者コードには、[個別のライセンス](THIRD_PARTY_NOTICES.md)が適用されます。
+The project is licensed under **GNU GPL v3 (GPL-3.0-only)**. Third-party code, including X1/libretro components, retains its [own licenses](THIRD_PARTY_NOTICES.md).
 
-## 主な機能
+## Features
 
-- 複数モニターへの表示、タイルごとのROM抽選・フェード・周期変更。
-- 左上のお気に入り枠、お気に入りごとの連続したボタン・キーボード入力。
-- resource_group / resource_weightによる同時実行の負荷制限。
-- ブラックリスト・ホワイトリストの管理、失敗したROMの再試行。
-- 通常表示とグループ表示の起動時抽選。選ばれた機種グループのゲームを最大64枠に並べて表示。
-- PC88・PC98・X1・X68000などの複数ディスク準備。対応機種一覧とコアの設定例は`systems.example/`を参照してください。
+- Multiple monitors, with independent ROM selection, fades, and rotation timing for each tile.
+- A favorites tile in the upper-left corner, with configurable sequences of game-button and keyboard inputs for each favorite.
+- Concurrent execution limits using `resource_group` and `resource_weight`.
+- Blacklist and whitelist management, with retries when a ROM fails to start.
+- A choice between normal and grouped layouts, drawn randomly at startup. Grouped mode fills up to 64 tiles with games from the selected system group.
+- Multi-disk preparation for systems such as PC-88, PC-98, X1, and X68000. See `systems.example/` for supported systems and example core settings.
 
-## 最大64画面の同時エミュレーション
+## Emulating up to 64 games at once
 
-各タイルでは、独立した子プロセスがlibretroコアとROMを読み込み、ゲームを実行して、その枠へ映像を描画します。64枠の構成なら、64個のゲーム実行用プロセスがそれぞれのゲームを動かします。管理側はROMの選択・起動・監視・入れ替えを担当し、起動準備の並列数を制限しながら、準備できた枠から表示します。
+Each tile has an independent child process that loads a libretro core and a ROM, runs the game, and draws its frames in that tile. A 64-tile layout uses 64 game processes. The scheduler handles ROM selection, startup, monitoring, and replacement. It limits concurrent initialization and displays each tile as it becomes ready.
 
-グループ表示では、起動時に「Mega Drive＋Mega-CD」「GB＋GBC＋GBA」などのグループを1つ抽選し、終了までそのグループを維持します。各枠のROMは個別に抽選するため、同じ系列のゲームが画面いっぱいに並び、それぞれ別の場面へ進みます。対象グループと通常表示との抽選比率は、後述の「グループ表示」で設定できます。
+At startup, grouped mode randomly selects one group, such as Mega Drive + Mega-CD or GB + GBC + GBA, and keeps that group for the session. Each tile selects its own ROM, filling the screens with games from the same group, each progressing independently. See "Grouped mode" below for the available groups and the selection ratio between normal and grouped modes.
 
-多画面での描画負荷を抑えるため、グループ表示は初期設定で各枠の表示更新を最大25fpsに制限します。エミュレーションの実行周期はコアが指定する速度に合わせ、表示更新の周期とは分けて管理しています。実際の速度や必要なCPU・メモリーは、機種・ROM・PCの性能によって変わります。
+To reduce rendering overhead, grouped mode limits each tile's display updates to 25 fps by default. Emulation runs at the rate specified by the core, with display updates scheduled separately. Actual performance and CPU and memory requirements depend on the systems, ROMs, and PC hardware.
 
-## 複数モニターへの配置
+## Multiple-monitor layouts
 
-`config.json`の`multi_monitor`を`true`にすると、全画面表示でWindowsのモニター配置を取得し、モニターごとにタイルを並べます。異なる解像度の組み合わせに対応し、各ゲームの映像は縦横比を保って枠内に収めます。
+With `multi_monitor` set to `true` in `config.json`, fullscreen mode reads the Windows monitor arrangement and places tiles on each monitor. Monitors with different resolutions can be combined, and each game's image fits within its tile while preserving its aspect ratio.
 
-グループ表示では、次の2台構成で合計64枠になります。
+In grouped mode, the following two-monitor setup provides 64 tiles:
 
-| モニターの解像度 | 配置（列×行） | 表示数 |
+| Monitor resolution | Grid (columns × rows) | Tiles |
 |---|---|---|
-| 1920×1080 | 7×4 | 28枠 |
-| 2560×1080 | 9×4 | 36枠 |
-| **合計** | | **64枠** |
+| 1920×1080 | 7×4 | 28 |
+| 2560×1080 | 9×4 | 36 |
+| **Total** | | **64** |
 
-枠数は各モニターの解像度で決まります。グループ表示では2560×1080以外は7×4が基本です。FBNeo単独グループは負荷を考慮して各モニター4×4、2台で合計32枠にしています。モニター構成によってグループ表示の合計上限を超える場合は、通常表示へ戻ります。通常表示では、解像度と`max_slots_per_monitor`に応じた枠数を使います。
+The tile count is determined by each monitor's resolution. Grouped mode normally uses a 7×4 grid for resolutions other than 2560×1080. The FBNeo-only group uses 4×4 tiles per monitor to reduce load, for a total of 32 tiles on two monitors. If the monitor arrangement would exceed the grouped-mode tile limit, the screensaver falls back to normal mode. Normal mode chooses its tile count based on resolution and `max_slots_per_monitor`.
 
-## 各枠が独立して入れ替わる非同期ローテーション
+## Independent, asynchronous rotation
 
-初期設定では`independent_slots_enabled`を有効にしており、各枠が別々の表示時間で動作します。時間を迎えた枠だけがフェードアウトし、次のROMを読み込んでフェードインする間も、ほかの枠は実行を続けます。通常表示・グループ表示のどちらでも、画面のあちこちが少しずつ入れ替わっていきます。
+The default configuration enables `independent_slots_enabled`, giving each tile its own display duration. When a tile's time expires, it fades out, loads the next ROM, and fades back in while the other tiles continue running. This gradually changes different parts of the screens in both normal and grouped modes.
 
-各枠の表示時間は、`cycle_seconds`を中心に`independent_jitter_seconds`の範囲で毎回ランダムに決まります。サンプルの共通設定は **150秒±15秒（135～165秒）** です。`systems/<機種ID>.json`に同じキーを指定すると、その機種の値を優先するため、起動に時間のかかる機種だけ長く表示することもできます。
+Each tile's duration is drawn anew around `cycle_seconds`, with a random variation of up to `independent_jitter_seconds` in either direction. The shared settings in the sample configuration are **150 seconds ±15 seconds (135–165 seconds)**. Setting the same keys in `systems/<system-id>.json` overrides the shared values for that system, so systems that take longer to start can stay on screen longer.
 
-時間は各コアから最初の映像フレームを受け取ってから数えます。起動時刻や表示時間の違いによって入れ替えのタイミングが分散し、フェード時間は`fade_duration_ms`で調整できます。待たずに切り替えたいときは、上キーで全枠、下キーでお気に入り枠を入れ替えられます。
+Timing begins when the first video frame is received from each core. Differences in startup times and durations spread out tile replacements. Adjust `fade_duration_ms` to change the fade duration. To replace games immediately, press Up for all tiles or Down for the favorites tile.
 
-## 必要なもの
+## Requirements
 
-Windows x64、Python、PyInstaller、および各機種のlibretroコア・ROM・必要なBIOSを用意してください。開発環境ではPython 3.14でテストしています。ROM・BIOS・個人のセーブ・お気に入り・ROM一覧はこのリポジトリに含みません。
+Windows x64, Python, PyInstaller, and the libretro cores, ROMs, and any required BIOS files for your systems. The development environment uses Python 3.14. ROMs, BIOS files, personal saves, favorites, and ROM catalogs are not included in this repository.
 
-## 初期設定とビルド
+## Setup and build
 
 ```powershell
 python -m pip install -r requirements.txt
 python initialize_config.py
 ```
 
-初期化で`config.json`、`favorites.json`、`systems/`と空のホワイトリストを作成します。既存ファイルは上書きしません。サンプルの`C:/ROMs/<機種ID>`、`C:/RetroArch-win64/cores`、BIOSのパスを、ご自身の環境に合わせて編集してください。使用しない機種は`enabled`を`false`にしてください。
+Initialization creates `config.json`, `favorites.json`, `systems/`, and an empty whitelist. Existing files are preserved. Update the sample `C:/ROMs/<system-id>`, `C:/RetroArch-win64/cores`, and BIOS paths to match your environment. Set `enabled` to `false` for systems you do not use.
 
 ```powershell
 .\build.bat
 ```
 
-`dist/RetroNativeSaver/`に実行ファイル・SCR・必要な補助ファイルを作成します。配布先ではフォルダー全体を保持してください。ビルド時にも初期設定の不足分だけを作成します。
+The build creates the executable, SCR file, and supporting files in `dist/RetroNativeSaver/`. Keep the entire folder together when deploying it. The build also initializes any missing configuration files.
 
-1. `dist/RetroNativeSaver/update_rom_catalog.bat`を実行して、固定ROM一覧を作成します。
-2. `test_saver.bat`で表示を確認します。
-3. `install_saver.bat`で登録し、Windowsのスクリーンセーバー設定を確認します。
+1. Run `dist/RetroNativeSaver/update_rom_catalog.bat` to create the fixed ROM catalog.
+2. Run `test_saver.bat` to check the display.
+3. Run `install_saver.bat` to register the screensaver, then check the Windows screensaver settings.
 
-ROMを追加・移動したら`update_rom_catalog.bat`で一覧を手動更新してください。既存の運用環境を更新する場合は、そちらの設定・save・state・お気に入りを保持してください。
+After adding or moving ROMs, manually update the catalog with `update_rom_catalog.bat`. When updating an existing installation, preserve its configuration, `save`, `state`, and favorites.
 
-X1の2ドライブ対応コアは専用ビルドです。DLLはGitに含めていません。[ビルド手順](cores/X1_BUILD.md)に従い、`cores/x1_rns_libretro.dll`を用意してください。その他のコアは外部のlibretroコアを使用します。
+X1 support uses a custom core build for two drives. The DLL is not included in Git. Follow the [build instructions](cores/X1_BUILD.md) to prepare `cores/x1_rns_libretro.dll`. Other systems use externally supplied libretro cores.
 
-## 起動中の操作
+## Controls
 
-| 操作 | 動作 |
+| Input | Action |
 |---|---|
-| 左・右 | タイルを選択。操作が途切れると選択表示が消えます |
-| Insert | 選択したゲームをお気に入りへ追加 |
-| Delete | 通常枠ならブラックリストへ追加。お気に入り枠ならお気に入りから削除。その枠を入れ替え |
-| 上 | 全枠のROMを入れ替え |
-| 下 | お気に入り枠だけ入れ替え |
-| Enter | 選択したゲームをRetroArchへ引き継いで終了 |
-| マウス・タッチ・その他の終了用キー | スクリーンセーバーを終了 |
+| Left / Right | Select a tile. The selection indicator disappears after a period without selection input |
+| Insert | Add the selected game to favorites |
+| Delete | Add a game in a normal tile to the blacklist, or remove a game in the favorites tile from favorites. Replace that tile |
+| Up | Replace the ROMs in all tiles |
+| Down | Replace only the favorites tile |
+| Enter | Exit the screensaver and launch the selected game in RetroArch |
+| Mouse / touch / other exit keys | Exit the screensaver |
 
-`configure_favorites.bat`でお気に入りと起動後の入力を編集できます。`configure_rom_lists.bat`でROMリストを管理できます。
+Use `configure_favorites.bat` to edit favorites and their startup input sequences. Use `configure_rom_lists.bat` to manage ROM lists.
 
-## グループ表示
+## Grouped mode
 
-初期設定は通常表示50%／グループ表示50%です。`single_system_mode.normal_weight`と`grouped_weight`の比で変更できます。グループは起動ごとに1つ選び、その回は選ばれたグループ内でROMを入れ替えます。
+The default selection ratio is 50% normal mode / 50% grouped mode. Adjust the ratio using `single_system_mode.normal_weight` and `grouped_weight`. One group is selected at startup, and ROM replacements stay within that group for the session.
 
 ```json
 [
@@ -101,29 +103,29 @@ X1の2ドライブ対応コアは専用ビルドです。DLLはGitに含めて�
 ]
 ```
 
-`single_system_mode.disabled_systems`の機種はグループ表示から除外します。サンプルでは`["fbneo"]`でFBNeoを停止しています。`[]`で再開できます。通常表示の機種設定には影響しません。表示更新の上限は`single_system_mode.max_fps`で指定し、共通の`independent_max_fps`との小さい方を使います。初期設定では25fpsです。
+Systems listed in `single_system_mode.disabled_systems` are excluded from grouped mode. The sample uses `["fbneo"]` to disable FBNeo in grouped mode; set it to `[]` to enable it again. This does not affect system settings for normal mode. The display update limit is the lower of `single_system_mode.max_fps` and the shared `independent_max_fps` setting. The default is 25 fps.
 
-## 開発・テスト
+## Development and tests
 
 ```powershell
 python initialize_config.py
 python -m unittest discover -v
 ```
 
-Windows向けの回帰テストを含みます。比較用の旧コードは`tests_fixtures/`に限定しています。v0.21.19はこの公開用構成でも652テストが成功しています。全機種・全ROM・すべてのPCでの長時間動作を保証するものではありません。
+The repository includes Windows regression tests. Historical code used for comparison is confined to `tests_fixtures/`. All 652 tests passed for v0.21.19 in this public repository configuration. This does not establish long-term compatibility with every system, ROM, or PC.
 
-[資源の所有と終了処理](docs/OWNERSHIP_NOTES.md)に、プロセス・コア・描画資源・設定の責務を記載しています。
+See [resource ownership and cleanup](docs/OWNERSHIP_NOTES.md) (Japanese) for responsibilities involving processes, cores, rendering resources, and configuration.
 
-## リポジトリと個人データ
+## Repository and personal data
 
-実行用の設定・お気に入り・ROM一覧・ログ・save・生成されたタイトル情報は`.gitignore`で除外しています。配布用の設定例は`config.example.json`と`systems.example/`です。元の配布フォルダーにあった個別環境の調査記録は含めていません。
+Runtime configuration, favorites, ROM catalogs, logs, saves, and generated title metadata are excluded by `.gitignore`. Shareable configuration examples are provided in `config.example.json` and `systems.example/`. Environment-specific investigation records from the original distribution folder are not included.
 
-## ライセンス
+## License
 
-RetroNativeSaver独自のソースコード・テスト・スクリプト・ドキュメント・設定例などは、別途記載のあるものを除き **GNU General Public License version 3のみ（SPDX: `GPL-3.0-only`）** で提供します。著作権表示と適用範囲は [COPYRIGHT](COPYRIGHT)、ライセンス全文は [LICENSE](LICENSE) を参照してください。ライセンス全文は[GNUの公式本文](https://www.gnu.org/licenses/gpl-3.0.txt)を変更せず収録しています。
+Unless otherwise stated, original RetroNativeSaver source code, tests, scripts, documentation, configuration examples, and other original project material are provided under **GNU General Public License version 3 only (SPDX: `GPL-3.0-only`)**. See [COPYRIGHT](COPYRIGHT) for the copyright notice and scope, and [LICENSE](LICENSE) for the full license text. The license text is an unmodified copy of the [official GNU text](https://www.gnu.org/licenses/gpl-3.0.txt).
 
-本ソフトウェアは無保証です。再配布・改変はGPL v3の条件に従って行えます。
+This software is provided without warranty. Redistribution and modification are permitted under the terms of GPL v3.
 
-X1の`xmil-libretro`ソースおよび専用変更は、上流のライセンス体系を維持します。ルートLICENSEはBSD 3-Clause、一部libretroヘッダーはMITです。各著作権・許諾・免責表示を保持し、[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)と [third_party/licenses/](third_party/licenses/) に対象と原文をまとめています。外部コアもそれぞれのライセンスに従います。
+The X1 `xmil-libretro` source and its custom modifications retain the upstream licensing scheme. Its root LICENSE is BSD 3-Clause, and some libretro headers use MIT. Copyright, permission, and disclaimer notices are preserved; [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) and [third_party/licenses/](third_party/licenses/) document their scope and contain the original notices. External cores remain subject to their respective licenses.
 
-ビルド時には本体のライセンス文書と第三者コードの文書・ソースアーカイブも配布フォルダーへコピーします。実行ファイルを公開する際は、それに対応する本体のソースとビルド手順も提供してください。
+The build copies the project's license documents and third-party documentation and source archive into the distribution folder. When publishing executables, also provide the corresponding project source and build instructions.
