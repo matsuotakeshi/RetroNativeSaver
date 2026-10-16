@@ -9,7 +9,7 @@ from pathlib import Path
 import random
 
 DEFAULT_GROUPS = (
-    ('megadrive', 'megacd'), ('pcengine', 'pcenginecd'), ('gb', 'gbc', 'gba'),
+    ('megadrive', 'megacd'), ('pcengine', 'pcenginecd', 'pcfx'), ('gb', 'gbc', 'gba'),
     ('fds', 'nes'), ('snes',), ('fbneo',),
     ('msx', 'x1', 'x68000', 'pc88', 'pc98'), ('neocd',),
 )

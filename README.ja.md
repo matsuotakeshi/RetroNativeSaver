@@ -2,7 +2,7 @@
 
 # RetroNativeSaver
 
-Windows向けの、複数のゲーム映像をタイル表示するスクリーンセーバーです。libretroコアを各タイルの独立した子プロセスで実行し、グループ表示では複数モニターに **最大64画面を同時表示** できます。現在の版は **v0.21.21** です。
+Windows向けの、複数のゲーム映像をタイル表示するスクリーンセーバーです。libretroコアを各タイルの独立した子プロセスで実行し、グループ表示では複数モニターに **最大64画面を同時表示** できます。現在の版は **v0.21.23** です。
 
 本体は **GNU GPL v3（GPL-3.0-only）** で公開しています。X1/libretroなどの第三者コードには、[個別のライセンス](THIRD_PARTY_NOTICES.md)が適用されます。
 
@@ -122,7 +122,9 @@ PC-98・X1・X68000・FM-7の`disk_boot_mode: "computer_two_drives"`では、`Di
 
 `configure_favorites.bat`でお気に入りと起動後の入力を編集できます。`configure_rom_lists.bat`でROMリストを管理できます。
 
-画面の機種名からは、設定例に含まれるコア名の補足を省きます。ログには設定上の名前をそのまま残します。機種名とソフト名の外周には`overlay.padding`の余白を確保し、2行の間には`overlay.line_gap`で指定した間隔だけを追加します。
+各枠の左上に「機種名 / ソフト名」を1行で表示し、枠内で右から左へ繰り返しスクロールします。両方とも機種名と同じフォント・`overlay.system_font_size`の文字サイズを使い、色は従来の設定を維持します。機種名からは設定例に含まれるコア名の補足を省き、ログには設定上の名前をそのまま残します。
+
+既存設定からの更新時も、スクロールは初期状態で有効です。`overlay`内の`scroll_speed`（毎秒の移動ピクセル数、初期値24）、`scroll_pause_seconds`（左端での停止秒数、初期値2）、`scroll_gap`（繰り返しの最小間隔、初期値48ピクセル）で調整できます。短い名前もスクロールします。`scroll_speed`を`0`にすると1行の静止表示、`scroll_enabled`を`false`にすると従来の2行表示に戻り、`game_font_size`と`line_gap`が使われます。キー操作の案内・結果表示は静止したままです。その他の設定・セーブ・お気に入り・ROM選択は変更しません。
 
 ## グループ表示
 
@@ -131,7 +133,7 @@ PC-98・X1・X68000・FM-7の`disk_boot_mode: "computer_two_drives"`では、`Di
 ```json
 [
   ["megadrive", "megacd"],
-  ["pcengine", "pcenginecd"],
+  ["pcengine", "pcenginecd", "pcfx"],
   ["gb", "gbc", "gba"],
   ["fds", "nes"],
   ["snes"],
@@ -143,6 +145,8 @@ PC-98・X1・X68000・FM-7の`disk_boot_mode: "computer_two_drives"`では、`Di
 
 `single_system_mode.disabled_systems`の機種はグループ表示から除外します。サンプルでは`["fbneo"]`でFBNeoを停止しています。`[]`で再開できます。通常表示の機種設定には影響しません。表示更新の上限は`single_system_mode.max_fps`で指定し、共通の`independent_max_fps`との小さい方を使います。初期設定では25fpsです。
 
+PC Engine／CD-ROM²グループにはPC-FXも追加できます。既存のグループ一覧を明記している場合は同じ配列に`"pcfx"`を追加するか、v0.21.23以降へ更新後、設置先の`enable_pcfx_group.bat`を実行してください。バッチは`config.json`をバックアップしてから更新し、その他の設定値は維持します。PC-FXは既存のコア・BIOSと`heavy_cd・weight=1`を使用し、自動ボタン入力は追加しません。グループ表示用の負荷上限を使い、通常表示の上限は変更しません。PC-FXを含む多数枠の実機性能は、ご使用の環境で確認が必要です。
+
 ## 開発・テスト
 
 ```powershell
@@ -150,7 +154,7 @@ python initialize_config.py
 python -m unittest discover -v
 ```
 
-Windows向けの回帰テストを含みます。比較用の旧コードは`tests_fixtures/`に限定しています。v0.21.21はこの公開用構成でも667テストが成功しています。全機種・全ROM・すべてのPCでの長時間動作を保証するものではありません。
+Windows向けの回帰テストを含みます。比較用の旧コードは`tests_fixtures/`に限定しています。v0.21.23はこの公開用構成でも684テストが成功しています。全機種・全ROM・すべてのPCでの長時間動作を保証するものではありません。
 
 [資源の所有と終了処理](docs/OWNERSHIP_NOTES.md)に、プロセス・コア・描画資源・設定の責務を記載しています。
 

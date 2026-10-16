@@ -47,6 +47,45 @@ class GroupedModeTests(unittest.TestCase):
         self.assertEqual(len(self.rng.choice.call_args.args[0]),8)
         self.assertEqual(self.cfg,before)
 
+    def test_nec_group_includes_pcfx_with_alias_pause_and_explicit_config_preserved(self):
+        group=['pcengine','pcenginecd','pcfx']
+        self.assertIn(group,mode.configured_groups({}))
+        self.rng.choice.side_effect=lambda groups:next(g for g in groups if 'pcengine' in g)
+        self.assertEqual(self.choose()[mode.SESSION_KEY],group)
+        self.assertEqual(mode.configured_groups({'groups':[['pcengine','cdrom2','pcfx']]}),[group])
+        # Existing explicit groups are not silently expanded on other installations.
+        self.assertEqual(mode.configured_groups({'groups':[group[:2]]}),[group[:2]])
+        self.cfg['single_system_mode']['disabled_systems']=['pcfx']
+        self.assertEqual(self.choose()[mode.SESSION_KEY],group[:2])
+        self.cfg['single_system_mode']['disabled_systems']=[]
+        next(s for s in self.systems if s['id']=='pcfx')['enabled']=False
+        self.save_systems()
+        self.assertEqual(self.choose()[mode.SESSION_KEY],group[:2])
+
+    def test_nec_group_uses_existing_pcfx_settings_and_group_resource_budget(self):
+        group=['pcengine','pcenginecd','pcfx']
+        selected=[json.loads((Path(__file__).parent/'systems.example'/f'{sid}.json').read_text(encoding='utf-8')) for sid in group]
+        before=copy.deepcopy(selected)
+        catalogs=Catalogs({sid:[Path(f'{sid}_{i}.chd') for i in range(80)] for sid in group})
+        systems,catalogs=mode.scheduler_inputs(selected,catalogs,64)
+        self.assertEqual(selected,before)
+        pcfx=next(s for s in systems if s['id']=='pcfx')
+        original=next(s for s in before if s['id']=='pcfx')
+        self.assertEqual(pcfx,dict(original,max_concurrent=64))
+        self.assertEqual((pcfx['resource_group'],pcfx['resource_weight']),('heavy_cd',1))
+        self.assertNotIn('startup_input',pcfx)
+        self.assertEqual(signature(pcfx),signature(original))
+        cfg=mode.scheduler_config(self.cfg)
+        self.assertEqual(cfg['resource_groups']['heavy_cd']['max_weight'],64)
+        self.assertEqual(self.cfg['resource_groups']['heavy_cd']['max_weight'],7)
+        picked=[];rng=random.Random(23)
+        for index in range(64):
+            pick=select_slot(index,systems,catalogs,cfg,picked,[],set(),set(),rng)
+            self.assertIsNotNone(pick);picked.append(pick)
+        self.assertEqual({s['id'] for s,r in picked},set(group))
+        replacement=select_slot(3,systems,catalogs,cfg,picked[:3]+picked[4:],[],set(),set(),rng)
+        self.assertIn(replacement[0]['id'],group)
+
     def test_computer_group_is_one_candidate_and_respects_existing_lists_and_pause(self):
         group=['msx','x1','x68000','pc88','pc98']
         self.assertIn(group,mode.configured_groups({}))

@@ -944,6 +944,12 @@ gdi32.GetTextExtentPoint32W.argtypes = [HDC, c_wchar_p, c_int, POINTER(SIZE)]
 gdi32.GetTextExtentPoint32W.restype = c_bool
 gdi32.TextOutW.argtypes = [HDC, c_int, c_int, c_wchar_p, c_int]
 gdi32.TextOutW.restype = c_bool
+gdi32.SaveDC.argtypes = [HDC]
+gdi32.SaveDC.restype = c_int
+gdi32.RestoreDC.argtypes = [HDC, c_int]
+gdi32.RestoreDC.restype = c_bool
+gdi32.IntersectClipRect.argtypes = [HDC, c_int, c_int, c_int, c_int]
+gdi32.IntersectClipRect.restype = c_int
 gdi32.ChoosePixelFormat.argtypes = [HDC, POINTER(PIXELFORMATDESCRIPTOR)]
 gdi32.ChoosePixelFormat.restype = c_int
 gdi32.SetPixelFormat.argtypes = [HDC, c_int, POINTER(PIXELFORMATDESCRIPTOR)]
@@ -1863,6 +1869,11 @@ class GDIDrawingSurface:
 
         from title_metadata import display_system_name
         system_name = display_system_name(system_name)
+
+        if overlay_cfg.get("scroll_enabled", True):
+            from overlay_scroll import draw
+            draw(self, gdi32, SIZE, system_name, game_name, x, y, w, h, overlay_cfg)
+            return
 
         margin = max(0, int(overlay_cfg.get("margin", 6)))
         padding = max(0, int(overlay_cfg.get("padding", 4)))

@@ -44,7 +44,7 @@ class DrawingBoundaryTests(unittest.TestCase):
         cls,events=self.make();obj=cls();obj.hwnd=13
         obj.begin_composite();first=obj.mem_dc
         obj.draw_frame_to_rect(bytes(16),2,2,8,1,1.0,0,0,320,240)
-        obj.draw_overlay('System','Game',0,0,320,240,{})
+        obj.draw_overlay('System','Game',0,0,320,240,dict(scroll_enabled=False))
         obj.draw_fade_black(100);obj.present()
         names=[e[0] for e in events]
         self.assertIn('StretchDIBits',names);self.assertEqual(names.count('TextOutW'),2)
@@ -71,7 +71,7 @@ class DrawingBoundaryTests(unittest.TestCase):
                     cls, events = self.make(); obj = cls(); obj.hwnd = 13
                     obj.begin_composite()
                     obj.draw_overlay('Sharp X68000 (PX68k)', '日本語タイトル', 10, 20, 320, 240,
-                                     dict(padding=padding, line_gap=gap))
+                                     dict(padding=padding, line_gap=gap, scroll_enabled=False))
                     text = [args for name, args in events if name == 'TextOutW']
                     self.assertEqual([args[3] for args in text], ['Sharp X68000', '日本語タイトル'])
                     self.assertEqual(text[0][1:3], (16 + padding, 26 + padding))
@@ -88,7 +88,7 @@ class DrawingBoundaryTests(unittest.TestCase):
     def test_single_overlay_line_keeps_outer_padding(self):
         for system, game in (('System', ''), ('', 'Game')):
             cls, events = self.make(); obj = cls(); obj.hwnd = 13
-            obj.begin_composite(); obj.draw_overlay(system, game, 0, 0, 320, 240, {})
+            obj.begin_composite(); obj.draw_overlay(system, game, 0, 0, 320, 240, dict(scroll_enabled=False))
             text = [args for name, args in events if name == 'TextOutW']
             self.assertEqual(len(text), 1)
             self.assertEqual(text[0][1:3], (10, 10))

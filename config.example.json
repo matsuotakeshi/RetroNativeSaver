@@ -15,6 +15,10 @@
   "windowed_slot_count": 4,
   "overlay": {
     "enabled": true,
+    "scroll_enabled": true,
+    "scroll_speed": 24,
+    "scroll_pause_seconds": 2,
+    "scroll_gap": 48,
     "system_font_size": 12,
     "game_font_size": 16,
     "system_color": "#909090",
@@ -63,7 +67,8 @@
       ],
       [
         "pcengine",
-        "pcenginecd"
+        "pcenginecd",
+        "pcfx"
       ],
       [
         "gb",

@@ -166,7 +166,7 @@ class TileControls(ForwardKeys):
         top, _, bottom = label.partition('\n')
         color = '#FF4040' if status in (ERROR, LAUNCH_ERROR) else '#FFD700'
         win.draw_overlay(top if bottom else '', bottom or top, 0, max(0,height-56), width, 56,
-            dict(enabled=True, system_font_size=12, game_font_size=12, margin=8, padding=3,
+            dict(enabled=True, scroll_enabled=False, system_font_size=12, game_font_size=12, margin=8, padding=3,
                  system_color=color,
                  game_color=color, background_alpha=224))
 

@@ -2,7 +2,7 @@
 
 # RetroNativeSaver
 
-A Windows screensaver that displays multiple games in a tiled layout. Each tile runs a libretro core in its own child process. Grouped mode supports **up to 64 simultaneous game displays across multiple monitors**. Current version: **v0.21.21**.
+A Windows screensaver that displays multiple games in a tiled layout. Each tile runs a libretro core in its own child process. Grouped mode supports **up to 64 simultaneous game displays across multiple monitors**. Current version: **v0.21.23**.
 
 The project is licensed under **GNU GPL v3 (GPL-3.0-only)**. Third-party code, including X1/libretro components, retains its [own licenses](THIRD_PARTY_NOTICES.md).
 
@@ -122,7 +122,9 @@ For PC-98, X1, X68000 and FM-7 with `disk_boot_mode: "computer_two_drives"`, `Di
 
 Use `configure_favorites.bat` to edit favorites and their startup input sequences. Use `configure_rom_lists.bat` to manage ROM lists.
 
-On-screen system labels omit the core suffixes used by the example configurations. The configured names remain unchanged in logs. The system and game labels share outer `overlay.padding`; only `overlay.line_gap` adds space between their text rows.
+On-screen labels display `System / Game` on one line at the upper left of each tile, scrolling from right to left and repeating within that tile. Both parts use the system-label font and `overlay.system_font_size`; their existing colors are retained. Core suffixes used by the example configurations are omitted on screen, while configured names remain unchanged in logs.
+
+Scrolling is enabled by default, including when updating an existing configuration. The `overlay` settings `scroll_speed` (pixels/second, default 24), `scroll_pause_seconds` (pause at the left edge, default 2) and `scroll_gap` (minimum pixels between repeats, default 48) control its motion. Short labels also scroll. Set `scroll_speed` to `0` for a stationary single line, or `scroll_enabled` to `false` to restore the two-line display with `game_font_size` and `line_gap`. Keyboard selection/help messages remain stationary. Settings, saves, favorites and ROM selection are otherwise unchanged.
 
 ## Grouped mode
 
@@ -131,7 +133,7 @@ The default selection ratio is 50% normal mode / 50% grouped mode. Adjust the ra
 ```json
 [
   ["megadrive", "megacd"],
-  ["pcengine", "pcenginecd"],
+  ["pcengine", "pcenginecd", "pcfx"],
   ["gb", "gbc", "gba"],
   ["fds", "nes"],
   ["snes"],
@@ -143,6 +145,8 @@ The default selection ratio is 50% normal mode / 50% grouped mode. Adjust the ra
 
 Systems listed in `single_system_mode.disabled_systems` are excluded from grouped mode. The sample uses `["fbneo"]` to disable FBNeo in grouped mode; set it to `[]` to enable it again. This does not affect system settings for normal mode. The display update limit is the lower of `single_system_mode.max_fps` and the shared `independent_max_fps` setting. The default is 25 fps.
 
+The PC Engine / CD-ROM² group also supports PC-FX. For an existing explicit group list, add `"pcfx"` to the same group, or run `enable_pcfx_group.bat` from the installation folder after updating to v0.21.23 or later. The batch backs up `config.json` and preserves other setting values. PC-FX uses its existing core/BIOS and `heavy_cd` weight of 1; no automatic startup button input is added. Dense mode uses its configured resource limit, while normal-mode limits remain unchanged. Performance of a dense group containing PC-FX still needs checking on your hardware.
+
 ## Development and tests
 
 ```powershell
@@ -150,7 +154,7 @@ python initialize_config.py
 python -m unittest discover -v
 ```
 
-The repository includes Windows regression tests. Historical code used for comparison is confined to `tests_fixtures/`. All 667 tests passed for v0.21.21 in this public repository configuration. This does not establish long-term compatibility with every system, ROM, or PC.
+The repository includes Windows regression tests. Historical code used for comparison is confined to `tests_fixtures/`. All 684 tests passed for v0.21.23 in this public repository configuration. This does not establish long-term compatibility with every system, ROM, or PC.
 
 See [resource ownership and cleanup](docs/OWNERSHIP_NOTES.md) (Japanese) for responsibilities involving processes, cores, rendering resources, and configuration.
 
