@@ -34,6 +34,39 @@ class SplitDiskZipTests(unittest.TestCase):
     def test_alt_revision_not_mixed(self):
         a=self.disk('A',suffix='[a]');self.disk('B')
         self.assertEqual(len(d.zip_disks(a,d.FORMATS['x68000'],'x68000')),1)
+
+    def test_numbered_system_set_resolves_every_catalog_entry(self):
+        archives = [self.disk(f'{n} of 5)({note}') for n, note in
+                    enumerate(('System', 'Disk 1', 'Disk 2', 'Disk 3', 'Disk 4'), 1)]
+        before = [p.read_bytes() for p in archives]
+        for n, source in enumerate(archives):
+            out = self.root / f'prepared{n}'
+            playlist = d.prepare({'id': 'x68000'}, source, out)
+            self.assertEqual((out / 'drive1.dim').read_bytes(), b'1 of 5)(System')
+            self.assertEqual((out / 'drive2.dim').read_bytes(), b'2 of 5)(Disk 1')
+            self.assertEqual(len(playlist.read_text().splitlines()), 2)
+        self.assertEqual([p.read_bytes() for p in archives], before)
+
+    def test_numbered_system_set_inside_one_archive(self):
+        a = self.archive('Game', [
+            ('Game (Disk 1 of 3)(System).dim', b'system'),
+            ('Game (Disk 2 of 3)(Disk 1).dim', b'data1'),
+            ('Game (Disk 3 of 3)(Disk 2).dim', b'data2')])
+        out = self.root / 'prepared'
+        d.prepare({'id': 'x68000'}, a, out)
+        self.assertEqual((out / 'drive1.dim').read_bytes(), b'system')
+        self.assertEqual((out / 'drive2.dim').read_bytes(), b'data1')
+
+    def test_numbered_data_disk_does_not_boot_when_system_missing(self):
+        b = self.disk('2 of 5)(Disk 1')
+        with self.assertRaisesRegex(ValueError, 'Missing or ambiguous Disk 1/A ZIP'):
+            d.zip_disks(b, d.FORMATS['x68000'], 'x68000')
+
+    def test_numbered_set_does_not_use_other_revision_boot(self):
+        self.disk('1 of 5)(System', suffix='[a]')
+        b = self.disk('2 of 5)(Disk 1')
+        with self.assertRaisesRegex(ValueError, 'Missing or ambiguous Disk 1/A ZIP'):
+            d.zip_disks(b, d.FORMATS['x68000'], 'x68000')
     def test_pair_inside_archive_has_precedence(self):
         a=self.archive('Game (Disk 1)',[('Game (Disk 1).dim',b'1'),('Game (Disk 2).dim',b'2')])
         self.disk('2')

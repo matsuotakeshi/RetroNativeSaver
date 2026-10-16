@@ -19,7 +19,7 @@ class DrawingBoundaryTests(unittest.TestCase):
         class API:
             def __getattr__(self,name):
                 def call(*args):
-                    events.append((name,args[:2]))
+                    events.append((name,args))
                     if name=='GetClientRect':args[1]._obj.right=320;args[1]._obj.bottom=240
                     if name=='GetTextExtentPoint32W':args[-1]._obj.cx=40;args[-1]._obj.cy=12
                     if name.startswith('Create') or name in ('GetDC','SelectObject'):
@@ -63,6 +63,44 @@ class DrawingBoundaryTests(unittest.TestCase):
         obj.begin_composite();obj.draw_frame_to_rect(bytes(16),2,2,8,1,1,0,0,20,20)
         obj.draw_fade_black(100);obj.present()
         self.assertEqual(events,[])
+
+    def test_overlay_pair_has_only_configured_gap_and_nonoverlapping_backgrounds(self):
+        for padding in (0, 4, 24):
+            for gap in (0, 3):
+                with self.subTest(padding=padding, gap=gap):
+                    cls, events = self.make(); obj = cls(); obj.hwnd = 13
+                    obj.begin_composite()
+                    obj.draw_overlay('Sharp X68000 (PX68k)', '日本語タイトル', 10, 20, 320, 240,
+                                     dict(padding=padding, line_gap=gap))
+                    text = [args for name, args in events if name == 'TextOutW']
+                    self.assertEqual([args[3] for args in text], ['Sharp X68000', '日本語タイトル'])
+                    self.assertEqual(text[0][1:3], (16 + padding, 26 + padding))
+                    self.assertEqual(text[1][1], text[0][1])
+                    self.assertEqual(text[1][2] - (text[0][2] + 12), gap)
+                    backgrounds = [args for name, args in events if name == 'AlphaBlend']
+                    self.assertEqual(len(backgrounds), 2)
+                    first, second = backgrounds
+                    self.assertEqual(second[2] - (first[2] + first[4]), gap)
+                    self.assertEqual(first[2] + padding, text[0][2])
+                    self.assertEqual(second[2] + second[4], text[1][2] + 12 + padding)
+                    obj.close()
+
+    def test_single_overlay_line_keeps_outer_padding(self):
+        for system, game in (('System', ''), ('', 'Game')):
+            cls, events = self.make(); obj = cls(); obj.hwnd = 13
+            obj.begin_composite(); obj.draw_overlay(system, game, 0, 0, 320, 240, {})
+            text = [args for name, args in events if name == 'TextOutW']
+            self.assertEqual(len(text), 1)
+            self.assertEqual(text[0][1:3], (10, 10))
+            background = next(args for name, args in events if name == 'AlphaBlend')
+            self.assertEqual(background[2], 6)
+            self.assertEqual(background[4], 20)
+            obj.close()
+
+    def test_disabled_overlay_does_not_allocate_or_draw(self):
+        cls, events = self.make(); obj = cls()
+        obj.draw_overlay('System', 'Game', 0, 0, 320, 240, dict(enabled=False))
+        self.assertEqual(events, [])
 
     def test_pixel_scaling_is_opt_in_per_window_and_normal_stays_halftone(self):
         cls,events=self.make();normal,dense=cls(),cls()

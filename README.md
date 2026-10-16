@@ -2,7 +2,7 @@
 
 # RetroNativeSaver
 
-A Windows screensaver that displays multiple games in a tiled layout. Each tile runs a libretro core in its own child process. Grouped mode supports **up to 64 simultaneous game displays across multiple monitors**. Current version: **v0.21.19**.
+A Windows screensaver that displays multiple games in a tiled layout. Each tile runs a libretro core in its own child process. Grouped mode supports **up to 64 simultaneous game displays across multiple monitors**. Current version: **v0.21.21**.
 
 The project is licensed under **GNU GPL v3 (GPL-3.0-only)**. Third-party code, including X1/libretro components, retains its [own licenses](THIRD_PARTY_NOTICES.md).
 
@@ -106,6 +106,8 @@ After adding or moving ROMs, manually update the catalog with `update_rom_catalo
 
 X1 support uses a custom core build for two drives. The DLL is not included in Git. Follow the [build instructions](cores/X1_BUILD.md) to prepare `cores/x1_rns_libretro.dll`. Other systems use externally supplied libretro cores.
 
+For PC-98, X1, X68000 and FM-7 with `disk_boot_mode: "computer_two_drives"`, `Disk 1 of N` / `Disk 2 of N` take priority over a secondary disk label. Without that notation, `Disk 1` / `Disk 2` or `Disk A` / `Disk B` select drives 1 and 2. Recognized role notes such as `(System)` and `(Disk 1)` are ignored when matching an explicitly numbered set; edition and dump annotations remain part of the match. An ambiguous set or a missing boot disk is rejected.
+
 ## Controls
 
 | Input | Action |
@@ -119,6 +121,8 @@ X1 support uses a custom core build for two drives. The DLL is not included in G
 | Mouse / touch / other exit keys | Exit the screensaver |
 
 Use `configure_favorites.bat` to edit favorites and their startup input sequences. Use `configure_rom_lists.bat` to manage ROM lists.
+
+On-screen system labels omit the core suffixes used by the example configurations. The configured names remain unchanged in logs. The system and game labels share outer `overlay.padding`; only `overlay.line_gap` adds space between their text rows.
 
 ## Grouped mode
 
@@ -146,7 +150,7 @@ python initialize_config.py
 python -m unittest discover -v
 ```
 
-The repository includes Windows regression tests. Historical code used for comparison is confined to `tests_fixtures/`. All 652 tests passed for v0.21.19 in this public repository configuration. This does not establish long-term compatibility with every system, ROM, or PC.
+The repository includes Windows regression tests. Historical code used for comparison is confined to `tests_fixtures/`. All 667 tests passed for v0.21.21 in this public repository configuration. This does not establish long-term compatibility with every system, ROM, or PC.
 
 See [resource ownership and cleanup](docs/OWNERSHIP_NOTES.md) (Japanese) for responsibilities involving processes, cores, rendering resources, and configuration.
 

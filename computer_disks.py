@@ -11,7 +11,12 @@ FORMATS = {
     'x68000': {'.dim', '.img', '.d88', '.88d', '.hdm', '.dup', '.2hd', '.xdf', '.hdf'},
 }
 HARD = {'.hdi', '.nhd', '.thd', '.hdf'}
-LABEL = re.compile(r'(?i)(?<!\w)(?:disk|disc)[ _-]*([0-9]+|[a-z])(?!\w)(?:\s+of\s+\d+)?')
+LABEL = re.compile(r'(?i)(?<!\w)(?:disk|disc)[ _-]*([0-9]+|[a-z])(?!\w)(?:\s+of\s+(\d+))?')
+# Only recognized disk-role notes may differ within an explicitly numbered set.
+# Keep revision, language, dump and unknown annotations in the matching key.
+DISK_ROLE_NOTE = re.compile(
+    r'(?i)\(\s*(?:(?:disk|disc)[ _-]*(?:[0-9]+|[a-z])|system|boot|program|data|user)\s*\)'
+)
 
 
 def unique_images(paths):
@@ -27,9 +32,17 @@ def identity(path):
     matches = list(LABEL.finditer(path.stem))
     if not matches:
         return None
-    value = matches[-1].group(1).lower()
+    numbered = next((m for m in matches if m.group(2) and m.group(1).isdigit()), None)
+    match = numbered or matches[-1]
+    value = match.group(1).lower()
     index = int(value) if value.isdigit() else ord(value) - 96
-    # Normalize every label: "Disk 1 of 3 (Disk A)" must match 2/B.
+    if numbered:
+        # "Disk 2 of 5 (Disk 1)" is the second disk, not the boot disk.
+        # Match its System disk while keeping the total and edition metadata.
+        suffix = DISK_ROLE_NOTE.sub('', path.stem[match.end():])
+        key = path.stem[:match.start()] + f'<disk of {int(match.group(2))}>' + suffix
+        return LABEL.sub('<disk>', key).strip().casefold(), index
+    # Keep the existing matching rules for simple Disk 1/2 and Disk A/B names.
     return LABEL.sub('<disk>', path.stem).casefold(), index
 
 

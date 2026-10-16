@@ -13,6 +13,7 @@ import unittest
 from unittest.mock import patch
 
 import favorite_titles
+from title_metadata import display_system_name
 from tests_fixtures import legacy_titles_v067 as legacy
 
 
@@ -48,6 +49,22 @@ class TitleCompatibilityTests(unittest.TestCase):
         expected = outcome(getattr(legacy, name), *args)
         self.assertEqual(outcome(getattr(favorite_titles, name), *args), expected)
         return expected[0]
+
+    def test_overlay_system_names_omit_known_core_annotations(self):
+        for configured, expected in (
+                ('PC-8801 (QUASI88)', 'PC-8801'),
+                ('PC-9801 (Neko Project II Kai)', 'PC-9801'),
+                ('Sharp X68000 (PX68k)', 'Sharp X68000'),
+                ('FM-7 (MAME Current)', 'FM-7'),
+                ('MAME Current', 'MAME'),
+                ('FinalBurn Neo', 'FinalBurn Neo')):
+            with self.subTest(configured=configured):
+                self.assertEqual(display_system_name(configured), expected)
+
+    def test_overlay_names_preserve_hardware_notes_and_custom_names(self):
+        for name in ('', 'Super Famicom / SNES', 'MSX / MSX2', 'System (Japan)',
+                     'My custom name', 'System (unknown core)', '保存失敗：ログを確認'):
+            self.assertEqual(display_system_name(name), name)
 
     def test_key_normalization_keeps_runtime_and_editor_differences(self):
         values = [None, '', ' ', 0, False, ' SF2.ZIP ', r'C:\ROMs\SF2.zip#member.bin',

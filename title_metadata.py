@@ -10,6 +10,14 @@ import os
 from pathlib import Path
 
 
+def display_system_name(name: str) -> str:
+    """Hide core annotations in overlays, retaining configured names elsewhere."""
+    for suffix in (' (QUASI88)', ' (Neko Project II Kai)', ' (PX68k)', ' (MAME Current)'):
+        if name.endswith(suffix):
+            return name[:-len(suffix)]
+    return 'MAME' if name == 'MAME Current' else name
+
+
 def _title_payload(data):
     if isinstance(data, dict) and isinstance(data.get('titles'), dict):
         return data['titles']

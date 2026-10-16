@@ -27,6 +27,46 @@ class ComputerDiskTests(unittest.TestCase):
         b=self.file('Game (Disk 2 of 2)[a].dim')
         self.assertEqual(d.select(a,[a,b]),[a])
 
+    def test_numbered_set_overrides_secondary_disk_labels(self):
+        disks = [self.file(f'Game (Disk {n} of 5)({note}).dim')
+                 for n, note in enumerate(('System', 'Disk 1', 'Disk 2', 'Disk 3', 'Disk 4'), 1)]
+        self.assertEqual(d.candidates(disks), disks[:1])
+        for source in disks:
+            self.assertEqual(d.select(source, disks), disks[:2])
+
+    def test_numbered_set_preserves_metadata_and_total(self):
+        first = self.file('Game (1991)(Maker)(Disk 1 of 5)(System).dim')
+        others = [self.file(name + '.dim') for name in (
+            'Other (1991)(Maker)(Disk 2 of 5)(Disk 1)',
+            'Game (1992)(Maker)(Disk 2 of 5)(Disk 1)',
+            'Game (1991)(Maker)(Disk 2 of 5)(Disk 1)[a]',
+            'Game (1991)(Maker)(Disk 2 of 5)(Disk 1)(Rev 2)',
+            'Game (1991)(Maker)(Disk 2 of 5)(Unknown)',
+            'Game (1991)(Maker)(Disk 2 of 4)(Disk 1)',
+        )]
+        self.assertEqual(d.select(first, [first, *others]), [first])
+
+    def test_plain_disk_number_and_letter_fallback(self):
+        for labels in (('1', '2'), ('A', 'B')):
+            disks = [Path(f'Game (Disk {label}).dim') for label in labels]
+            self.assertEqual(d.select(disks[1], disks), disks)
+
+    def test_numbered_disc_spelling_case_and_letter_note(self):
+        disks = [Path('Game (DISC 1 OF 3)(System).dim'),
+                 Path('Game (disc 2 of 3)(Disc A).dim')]
+        self.assertEqual(d.select(disks[1], disks), disks)
+
+    def test_role_notes_without_numbered_set_are_preserved(self):
+        disks = [Path('Game (Disk 1)(System).dim'), Path('Game (Disk 2)(Data).dim')]
+        self.assertEqual(d.select(disks[0], disks), disks[:1])
+
+    def test_numbered_set_duplicate_boot_is_rejected(self):
+        disks = [Path('Game (Disk 1 of 3)(System).dim'),
+                 Path('Game (Disk 1 of 3)(Disk A).dim'),
+                 Path('Game (Disk 2 of 3)(Disk B).dim')]
+        with self.assertRaisesRegex(ValueError, 'Ambiguous disk 1'):
+            d.select(disks[2], disks)
+
     def test_zip_two_disks(self):
         source=self.root/'game.zip'
         with zipfile.ZipFile(source,'w') as z:

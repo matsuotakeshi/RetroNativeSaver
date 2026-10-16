@@ -1800,7 +1800,8 @@ class GDIDrawingSurface:
             self.overlay_game_font = self._create_overlay_font(game_px, 9)
 
     def _draw_overlay_line(self, text_value: str, font: HFONT, color: int,
-                           x: int, y: int, padding: int, background_alpha: int):
+                           x: int, y: int, padding: int, background_alpha: int,
+                           *, top_padding=None, bottom_padding=None):
         from gdi_safety import checked, selected, release_dc
         if not text_value or not font:
             return 0
@@ -1813,8 +1814,10 @@ class GDIDrawingSurface:
             ):
                 return 0
 
+            top_padding = padding if top_padding is None else top_padding
+            bottom_padding = padding if bottom_padding is None else bottom_padding
             box_w = int(size.cx) + padding * 2
-            box_h = int(size.cy) + padding * 2
+            box_h = int(size.cy) + top_padding + bottom_padding
             self._draw_overlay_background(
                 x,
                 y,
@@ -1823,19 +1826,19 @@ class GDIDrawingSurface:
                 background_alpha,
             )
 
-            self._paint_overlay_text(text_value, color, x, y, padding)
-            return int(size.cy) + padding * 2
+            self._paint_overlay_text(text_value, color, x, y, padding, top_padding=top_padding)
+            return box_h
         finally:
             selected(gdi32.SelectObject, self.mem_dc, old_font)
 
-    def _paint_overlay_text(self, text_value, color, x, y, padding):
+    def _paint_overlay_text(self, text_value, color, x, y, padding, *, top_padding=None):
         from gdi_safety import checked, selected, release_dc
         checked('SetBkMode', gdi32.SetBkMode, self.mem_dc, TRANSPARENT)
         checked('SetTextColor', gdi32.SetTextColor, self.mem_dc, color, invalid=(None, -1, 0xFFFFFFFF))
         checked('TextOutW', gdi32.TextOutW, 
             self.mem_dc,
             x + padding,
-            y + padding,
+            y + (padding if top_padding is None else top_padding),
             text_value,
             len(text_value),
         )
@@ -1857,6 +1860,9 @@ class GDIDrawingSurface:
                      x: int, y: int, w: int, h: int, overlay_cfg: dict):
         if not overlay_cfg.get("enabled", True):
             return
+
+        from title_metadata import display_system_name
+        system_name = display_system_name(system_name)
 
         margin = max(0, int(overlay_cfg.get("margin", 6)))
         padding = max(0, int(overlay_cfg.get("padding", 4)))
@@ -1885,6 +1891,8 @@ class GDIDrawingSurface:
             oy,
             padding,
             background_alpha,
+            # Keep padding around the pair, not between its two lines.
+            bottom_padding=0 if game_name else padding,
         )
         oy += used + line_gap
 
@@ -1896,6 +1904,7 @@ class GDIDrawingSurface:
             oy,
             padding,
             background_alpha,
+            top_padding=0 if used else padding,
         )
 
     def present(self):
