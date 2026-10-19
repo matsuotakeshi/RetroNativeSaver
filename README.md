@@ -2,7 +2,7 @@
 
 # RetroNativeSaver
 
-A Windows screensaver that displays multiple games in a tiled layout. Each tile runs a libretro core in its own child process. Grouped mode supports **up to 64 simultaneous game displays across multiple monitors**. Current version: **v0.21.23**.
+A Windows screensaver that displays multiple games in a tiled layout. Each tile runs a libretro core in its own child process. Grouped mode supports **up to 64 simultaneous game displays across multiple monitors**. Current version: **v0.21.24**.
 
 The project is licensed under **GNU GPL v3 (GPL-3.0-only)**. Third-party code, including X1/libretro components, retains its [own licenses](THIRD_PARTY_NOTICES.md).
 
@@ -120,6 +120,8 @@ For PC-98, X1, X68000 and FM-7 with `disk_boot_mode: "computer_two_drives"`, `Di
 | Enter | Exit the screensaver and launch the selected game in RetroArch |
 | Mouse / touch / other exit keys | Exit the screensaver |
 
+If Enter is used from a separate screensaver desktop, the launcher looks up the normal Windows desktop on a dedicated thread. It preserves the saver process cleanup and launches RetroArch outside the saver Job. It does not switch desktops or unlock Windows; a locked or authentication-required desktop still prevents this fallback.
+
 Use `configure_favorites.bat` to edit favorites and their startup input sequences. Use `configure_rom_lists.bat` to manage ROM lists.
 
 On-screen labels display `System / Game` on one line at the upper left of each tile, scrolling from right to left and repeating within that tile. Both parts use the system-label font and `overlay.system_font_size`; their existing colors are retained. Core suffixes used by the example configurations are omitted on screen, while configured names remain unchanged in logs.
@@ -154,7 +156,7 @@ python initialize_config.py
 python -m unittest discover -v
 ```
 
-The repository includes Windows regression tests. Historical code used for comparison is confined to `tests_fixtures/`. All 684 tests passed for v0.21.23 in this public repository configuration. This does not establish long-term compatibility with every system, ROM, or PC.
+The repository includes Windows regression tests. Historical code used for comparison is confined to `tests_fixtures/`. All 701 tests passed for v0.21.24 in this public repository configuration. This does not establish long-term compatibility with every system, ROM, or PC.
 
 See [resource ownership and cleanup](docs/OWNERSHIP_NOTES.md) (Japanese) for responsibilities involving processes, cores, rendering resources, and configuration.
 

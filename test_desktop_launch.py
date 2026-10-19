@@ -3,6 +3,7 @@ import contextlib
 import ctypes
 from ctypes import wintypes as wt
 import io
+import threading
 import unittest
 from unittest.mock import Mock, patch
 import desktop_launch as desktop
@@ -75,11 +76,191 @@ class DesktopTests(unittest.TestCase):
 
     def test_absent_shell_fails_without_saver_parent_fallback(self):
         self.user.GetShellWindow.return_value = 0
-        with self.assertRaisesRegex(RuntimeError, 'normal desktop shell'):
-            self.run_launch()
+        with patch.object(desktop, '_normal_desktop_parent', side_effect=RuntimeError('normal desktop shell unavailable')):
+            with self.assertRaisesRegex(RuntimeError, 'normal desktop shell'):
+                self.run_launch()
         self.kernel.OpenProcess.assert_not_called()
         self.kernel.CreateProcessW.assert_not_called()
         self.kernel.CloseHandle.assert_not_called()
+
+    def setup_separate_desktop(self, active='Default', secure=False):
+        k, u = self.kernel, self.user
+        self.names = {201: 'WinSta0', 202: 'Screen-saver', 203: active}
+        u.GetProcessWindowStation.return_value = 201
+        u.GetThreadDesktop.return_value = 202
+        k.GetCurrentThreadId.return_value = 99
+        u.OpenInputDesktop.return_value = 203
+        u.OpenDesktopW.return_value = 204
+        u.SetThreadDesktop.return_value = 1
+        u.CloseDesktop.return_value = 1
+        def name(handle, kind, buffer, size, required):
+            self.assertEqual(kind, desktop.UOI_NAME)
+            buffer.value = self.names[handle]
+            return 1
+        u.GetUserObjectInformationW.side_effect = name
+        def security(action, unused, result, flags):
+            self.assertEqual((action, unused, flags), (0x76, 0, 0))
+            ctypes.cast(result, ctypes.POINTER(wt.BOOL)).contents.value = secure
+            return 1
+        u.SystemParametersInfoW.side_effect = security
+        u.GetShellWindow.side_effect = [0, 101]
+
+    def test_separate_desktop_queries_default_on_new_thread_and_keeps_job_contract(self):
+        self.setup_separate_desktop()
+        main_thread = threading.get_ident()
+        threads = []
+        self.user.SetThreadDesktop.side_effect = lambda handle: threads.append(threading.get_ident()) or 1
+        result, log = self.run_launch()
+        self.assertEqual(result, 30)
+        self.assertEqual(len(threads), 1)
+        self.assertNotEqual(threads[0], main_thread)
+        self.assertIn('desktop=Screen-saver; input=Default; querying Default', log)
+        self.user.OpenDesktopW.assert_called_once_with('Default', 0, False, 1)
+        self.user.SetThreadDesktop.assert_called_once_with(204)
+        self.assertEqual([call.args[0] for call in self.user.CloseDesktop.call_args_list], [203, 203, 204])
+        self.kernel.OpenProcess.assert_called_once_with(0x80, False, 55)
+        self.assertEqual([call.args[0] for call in self.kernel.CloseHandle.call_args_list], [20, 10, 90])
+        self.user.SwitchDesktop.assert_not_called()
+        self.user.SetProcessWindowStation.assert_not_called()
+
+    def test_nonsecure_screensaver_desktop_can_launch(self):
+        self.setup_separate_desktop(active='Screen-saver')
+        self.assertEqual(self.run_launch()[0], 30)
+        self.assertEqual(self.user.SystemParametersInfoW.call_count, 2)
+
+    def test_secure_screensaver_does_not_launch_or_open_default(self):
+        self.setup_separate_desktop(active='Screen-saver', secure=True)
+        with self.assertRaisesRegex(RuntimeError, 'unlocked desktop'):
+            self.run_launch()
+        self.user.CloseDesktop.assert_called_once_with(203)
+        self.user.OpenDesktopW.assert_not_called()
+        self.kernel.OpenProcess.assert_not_called()
+        self.kernel.CreateProcessW.assert_not_called()
+
+    def test_locked_or_unknown_input_desktop_fails_closed(self):
+        self.setup_separate_desktop()
+        for name in ('Winlogon', 'UnknownDesktop'):
+            with self.subTest(name=name):
+                self.names[203] = name
+                with self.assertRaisesRegex(RuntimeError, 'unlocked desktop'):
+                    desktop._normal_desktop_parent(self.kernel, self.user)
+        self.user.OpenDesktopW.assert_not_called()
+        self.kernel.OpenProcess.assert_not_called()
+
+    def test_lock_transition_during_lookup_is_rejected(self):
+        self.setup_separate_desktop()
+        def change(handle):
+            self.names[203] = 'Winlogon'
+            return 1
+        self.user.SetThreadDesktop.side_effect = change
+        with self.assertRaisesRegex(RuntimeError, 'unlocked desktop'):
+            self.run_launch()
+        self.assertEqual([call.args[0] for call in self.user.CloseDesktop.call_args_list], [203, 203, 204])
+        self.kernel.OpenProcess.assert_not_called()
+        self.kernel.CreateProcessW.assert_not_called()
+
+    def test_noninteractive_station_is_rejected(self):
+        self.setup_separate_desktop()
+        self.names[201] = 'Service-0'
+        with self.assertRaisesRegex(RuntimeError, 'interactive window station'):
+            self.run_launch()
+        self.user.OpenInputDesktop.assert_not_called()
+        self.user.OpenDesktopW.assert_not_called()
+
+    def test_input_desktop_access_failure_reports_stage_without_launch(self):
+        self.setup_separate_desktop()
+        self.user.OpenInputDesktop.side_effect = self.denied
+        with self.assertRaisesRegex(OSError, 'OpenInputDesktop'):
+            self.run_launch()
+        self.user.CloseDesktop.assert_not_called()
+        self.kernel.CreateProcessW.assert_not_called()
+
+    def test_security_query_failure_closes_input_handle(self):
+        self.setup_separate_desktop(active='Screen-saver')
+        self.user.SystemParametersInfoW.side_effect = self.denied
+        with self.assertRaisesRegex(OSError, 'screen saver security'):
+            self.run_launch()
+        self.user.CloseDesktop.assert_called_once_with(203)
+        self.user.OpenDesktopW.assert_not_called()
+
+    def test_name_query_failure_does_not_open_default(self):
+        self.setup_separate_desktop()
+        self.user.GetUserObjectInformationW.side_effect = self.denied
+        with self.assertRaisesRegex(OSError, 'GetUserObjectInformationW'):
+            self.run_launch()
+        self.user.OpenDesktopW.assert_not_called()
+
+    def test_default_open_failure_reports_stage(self):
+        self.setup_separate_desktop()
+        self.user.OpenDesktopW.side_effect = self.denied
+        with self.assertRaisesRegex(OSError, 'OpenDesktopW'):
+            self.run_launch()
+        self.user.SetThreadDesktop.assert_not_called()
+        self.user.CloseDesktop.assert_called_once_with(203)
+
+    def test_thread_desktop_failure_is_propagated_and_handle_released(self):
+        self.setup_separate_desktop()
+        self.user.SetThreadDesktop.side_effect = self.denied
+        with self.assertRaises(OSError) as error:
+            self.run_launch()
+        self.assertEqual(error.exception.winerror, 5)
+        self.assertIn('SetThreadDesktop', str(error.exception))
+        self.assertEqual([call.args[0] for call in self.user.CloseDesktop.call_args_list], [203, 204])
+        self.kernel.CreateProcessW.assert_not_called()
+
+    def test_default_shell_missing_is_not_retried_as_saver_child(self):
+        self.setup_separate_desktop()
+        self.user.GetShellWindow.side_effect = [0, 0]
+        with self.assertRaisesRegex(RuntimeError, 'normal desktop shell'):
+            self.run_launch()
+        self.user.CloseDesktop.assert_any_call(204)
+        self.kernel.OpenProcess.assert_not_called()
+        self.kernel.CreateProcessW.assert_not_called()
+
+    def test_lookup_parent_open_failure_releases_desktop(self):
+        self.setup_separate_desktop()
+        self.kernel.OpenProcess.side_effect = self.denied
+        with self.assertRaisesRegex(OSError, 'OpenProcess'):
+            self.run_launch()
+        self.user.CloseDesktop.assert_any_call(204)
+        self.kernel.CreateProcessW.assert_not_called()
+
+    def test_thread_start_failure_releases_desktop(self):
+        self.setup_separate_desktop()
+        with patch.object(desktop.threading.Thread, 'start', side_effect=RuntimeError('thread failed')):
+            with self.assertRaisesRegex(RuntimeError, 'thread failed'):
+                self.run_launch()
+        self.user.CloseDesktop.assert_any_call(204)
+        self.kernel.OpenProcess.assert_not_called()
+
+    def test_thread_construction_failure_releases_desktop(self):
+        self.setup_separate_desktop()
+        with patch.object(desktop.threading, 'Thread', side_effect=RuntimeError('thread failed')):
+            with self.assertRaisesRegex(RuntimeError, 'thread failed'):
+                self.run_launch()
+        self.user.CloseDesktop.assert_any_call(204)
+        self.kernel.OpenProcess.assert_not_called()
+
+    def test_interrupted_lookup_releases_unclaimed_parent_handle(self):
+        self.setup_separate_desktop()
+        original = threading.Thread.join
+        def interrupted(thread):
+            original(thread)
+            raise RuntimeError('interrupted lookup')
+        with patch.object(threading.Thread, 'join', interrupted):
+            with self.assertRaisesRegex(RuntimeError, 'interrupted lookup'):
+                self.run_launch()
+        self.kernel.CloseHandle.assert_called_once_with(90)
+        self.user.CloseDesktop.assert_any_call(204)
+        self.kernel.CreateProcessW.assert_not_called()
+
+    def test_desktop_close_warnings_do_not_discard_parent_or_skip_cleanup(self):
+        self.setup_separate_desktop()
+        self.user.CloseDesktop.return_value = 0
+        result, log = self.run_launch()
+        self.assertEqual(result, 30)
+        self.assertEqual(log.count('desktop handle close warning'), 3)
+        self.assertEqual(self.kernel.CloseHandle.call_count, 3)
 
     def test_shell_pid_failure_reports_stage(self):
         self.user.GetWindowThreadProcessId.side_effect = self.denied
