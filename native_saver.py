@@ -1,4 +1,5 @@
 from __future__ import annotations
+from ui_text import tr as _tr
 
 import faulthandler
 import ctypes
@@ -44,32 +45,9 @@ def resolve_app_relative_path(value, default_name):
         path = APP_DIR / path
     return path.resolve()
 
-# Persistent diagnostics.
-#
-# PyInstaller --windowed / --noconsole sets sys.stdout and sys.stderr to None.
-# Instead of throwing diagnostics away, always append them to a daily log file.
-# Console launches still tee to the visible console as well.
-_LOG_DIR = APP_DIR / "logs"
-try:
-    _LOG_DIR.mkdir(parents=True, exist_ok=True)
-except Exception:
-    _LOG_DIR = Path(tempfile.gettempdir()) / "retro_native_saver_logs"
-    _LOG_DIR.mkdir(parents=True, exist_ok=True)
-
-_LOG_PATH = _LOG_DIR / (
-    "retro_native_saver_" + datetime.datetime.now().strftime("%Y%m%d") + ".log"
-)
-_LOG_HANDLE = open(_LOG_PATH, "a", encoding="utf-8", buffering=1)
-
-_ORIGINAL_STDOUT = sys.stdout
-_ORIGINAL_STDERR = sys.stderr
-
-
-from diagnostic_io import _DiagnosticStream
-
-
-sys.stdout = _DiagnosticStream(_ORIGINAL_STDOUT, _LOG_HANDLE, "OUT")
-sys.stderr = _DiagnosticStream(_ORIGINAL_STDERR, _LOG_HANDLE, "ERR")
+# Logging is opt-in; child processes inherit the choice made at startup.
+from log_output import install as install_log_output
+_LOG_DIR, _LOG_PATH, _LOG_HANDLE = install_log_output(APP_DIR, sys.argv[1:])
 
 print(
     "=== Retro Native Saver process start "
@@ -280,7 +258,8 @@ def hard_exit_process(exit_code: int):
 try:
     # Use the real file handle rather than the tee wrapper so fatal native
     # diagnostics have a valid OS file descriptor even in --windowed builds.
-    faulthandler.enable(file=_LOG_HANDLE, all_threads=True)
+    if _LOG_HANDLE is not None:
+        faulthandler.enable(file=_LOG_HANDLE, all_threads=True)
 except (RuntimeError, OSError, ValueError):
     # Diagnostics must never prevent a windowed screen saver from starting.
     pass
@@ -3174,22 +3153,21 @@ def parse_screensaver_args(argv):
 
 
 def show_config_dialog():
-    config_path = APP_DIR / "config.json"
-    message = (
-        "Retro Native Saver の設定は config.json で変更できます。\\n\\n"
-        f"{config_path}\\n\\n"
-        "ゲーム切り替え時間、オーバーレイ、systems設定などを編集してください。"
-    )
-    user32.MessageBoxW(
-        None,
-        message,
-        "Retro Native Saver",
-        0x00000040,  # MB_ICONINFORMATION
-    )
+    from settings_dialog import parse_config_args, show_settings_dialog
+    try:
+        config_path, owner = parse_config_args(sys.argv[1:], APP_DIR)
+        show_settings_dialog(APP_DIR, config_path, owner)
+        return 0
+    except Exception as exc:
+        user32.MessageBoxW(None, _tr('設定画面を開けませんでした。\n{v0}\n\n既存の設定ファイルは変更していません。', v0=exc),
+                           "Retro Native Saver", 0x10)
+        return 1
 
 
 def main():
     import startup_timing as startup
+    from ui_text import configure as configure_ui_language
+    configure_ui_language({})
     launch_mode, preview_parent, cli_args = parse_screensaver_args(sys.argv[1:])
 
     if "--rom-lists" in cli_args:
@@ -3200,14 +3178,13 @@ def main():
         try:
             show_rom_list_editor(APP_DIR, options.config)
         except Exception as exc:
-            user32.MessageBoxW(None, f"ROMリスト画面を開けませんでした。\n{exc}",
+            user32.MessageBoxW(None, _tr('ROMリスト画面を開けませんでした。\n{v0}', v0=exc),
                                "Retro Native Saver", 0x10)
             return 1
         return 0
 
     if launch_mode == "config":
-        show_config_dialog()
-        return 0
+        return show_config_dialog()
 
     # Windows Settings may destroy/recreate its preview host very quickly.
     # A stale /p HWND is normal during that transition; exit quietly instead
@@ -3240,6 +3217,7 @@ def main():
         print(f"[config] cannot start saver: {args.config}: {exc}", flush=True)
         return 2
     systems_dir = APP_DIR / cfg.get("systems_dir", "systems")
+    configure_ui_language(cfg)
     favorites_path = resolve_app_relative_path(cfg.get("favorites_file"), "favorites.json")
     if args.favorites:
         try:
@@ -3247,10 +3225,8 @@ def main():
         except Exception as exc:
             print(f"[favorites] editor could not open: {exc}", flush=True)
             user32.MessageBoxW(None,
-                "お気に入り設定画面を開けませんでした。\n"
-                "PythonのTcl/Tkを含めてビルドし直してください。\n"
-                f"favorites.json を直接編集することもできます。\n\n{exc}",
-                "Retro Native Saver — お気に入り設定", 0x10)
+                _tr('お気に入り設定画面を開けませんでした。\nPythonのTcl/Tkを含めてビルドし直してください。\nfavorites.json を直接編集することもできます。\n\n{v0}', v0=exc),
+                _tr('Retro Native Saver — お気に入り設定'), 0x10)
             return 1
         return 0
     from single_system_mode import prepare_session, selected_systems, monitor_slots, scheduler_inputs, scheduler_config
@@ -4196,7 +4172,9 @@ def supervisor_main():
                 launch(launch_pick, supervisor_cfg, APP_DIR)
             except Exception as exc:
                 print(f'[retroarch] launch failed: {exc}', flush=True)
-                user32.MessageBoxW(None, f'RetroArchを起動できませんでした。\n{exc}', 'Retro Native Saver', 0x10)
+                from ui_text import configure as configure_ui_language, tr as _tr
+                configure_ui_language(supervisor_cfg)
+                user32.MessageBoxW(None, _tr('RetroArchを起動できませんでした。\n{v0}', v0=exc), 'Retro Native Saver', 0x10)
 
 
 if __name__ == "__main__":

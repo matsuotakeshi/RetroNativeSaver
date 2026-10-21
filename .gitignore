@@ -19,3 +19,5 @@ FNT*.TMP
 /.env.*
 .venv/
 venv/
+
+/config.json.bak-*

@@ -6,7 +6,7 @@ python initialize_config.py
 if errorlevel 1 exit /b 1
 
 echo ========================================
-echo Retro Native Saver v0.21.24 build
+echo Retro Native Saver v0.21.26 build
 echo ========================================
 
 if exist build rmdir /s /q build
@@ -82,11 +82,7 @@ echo cd /d "%%~dp0"
 echo "%%~dp0RetroNativeSaver.scr" /s
 ) > "dist\RetroNativeSaver\test_saver.bat"
 
-(
-echo @echo off
-echo cd /d "%%~dp0"
-echo "%%~dp0RetroNativeSaver.scr" /c
-) > "dist\RetroNativeSaver\configure_saver.bat"
+copy /y "configure_saver.bat" "dist\RetroNativeSaver\configure_saver.bat" >nul
 
 
 (

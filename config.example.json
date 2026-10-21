@@ -1,4 +1,7 @@
 {
+  "ui_language": "auto",
+  "log_output_enabled": false,
+  "retroarch_path": "",
   "systems_dir": "systems",
   "system_dir": "C:\\RetroArch-win64\\system",
   "save_dir": "save",

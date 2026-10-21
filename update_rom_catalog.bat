@@ -9,7 +9,7 @@ if exist "RetroNativeSaver.exe" (
   python native_saver.py --update-rom-catalog
 )
 if errorlevel 1 (
-  echo UPDATE FAILED. Previous catalog was kept. See logs for details.
+  echo UPDATE FAILED. Previous catalog was kept. Enable log output in Settings and retry for details.
   pause
   exit /b 1
 )

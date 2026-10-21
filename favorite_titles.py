@@ -1,4 +1,5 @@
 """Read-only title lookup and ROM selection for the favorites editor."""
+from ui_text import tr as _tr
 import os
 from pathlib import Path
 
@@ -10,7 +11,7 @@ def rom_rows(app_dir, system, titles):
     if not folder.is_absolute():
         folder = Path(app_dir) / folder
     if not folder.is_dir():
-        raise FileNotFoundError(f'ROMフォルダーが見つかりません: {folder}')
+        raise FileNotFoundError(_tr('ROMフォルダーが見つかりません: {v0}', v0=folder))
     extensions = {str(e).casefold() for e in system.get('extensions', ['.zip', '.7z'])}
     paths = folder.rglob('*') if system.get('recursive', True) else folder.iterdir()
     rows = [(display_title(p, titles), str(p.relative_to(folder)), str(p))
@@ -24,22 +25,22 @@ def choose_roms(parent, app_dir, system, titles):
     try:
         rows = rom_rows(app_dir, system, titles)
     except OSError as exc:
-        messagebox.showerror('ROMを読み込めません', str(exc), parent=parent)
+        messagebox.showerror(_tr('ROMを読み込めません'), str(exc), parent=parent)
         return []
     dialog = tk.Toplevel(parent)
-    dialog.title(f"お気に入りに追加 — {system.get('name', system['id'])}")
+    dialog.title(_tr('お気に入りに追加 — {v0}', v0=system.get('name', system['id'])))
     dialog.geometry('950x600')
     dialog.transient(parent)
     frame = ttk.Frame(dialog, padding=12)
     frame.pack(fill='both', expand=True)
-    ttk.Label(frame, text='タイトル・ファイル名で検索（複数選択可）').pack(anchor='w')
+    ttk.Label(frame, text=_tr('タイトル・ファイル名で検索（複数選択可）')).pack(anchor='w')
     query = tk.StringVar()
     search = ttk.Entry(frame, textvariable=query)
     search.pack(fill='x', pady=6)
     area = ttk.Frame(frame)
     area.pack(fill='both', expand=True)
     table = ttk.Treeview(area, columns=('title', 'file'), show='headings', selectmode='extended')
-    for col, label, width in [('title', 'タイトル', 590), ('file', 'ROMファイル', 290)]:
+    for col, label, width in [('title', _tr('タイトル'), 590), ('file', _tr('ROMファイル'), 290)]:
         table.heading(col, text=label)
         table.column(col, width=width)
     scroll = ttk.Scrollbar(area, command=table.yview)
@@ -71,7 +72,7 @@ def choose_roms(parent, app_dir, system, titles):
                 if iid in selected:
                     table.selection_add(iid)
                 count += 1
-        status.configure(text=f'{count} / {len(rows)} 件（検索前に選択した項目も保持します）')
+        status.configure(text=_tr('{v0} / {v1} 件（検索前に選択した項目も保持します）', v0=count, v1=len(rows)))
 
     def changed(*_):
         nonlocal pending
@@ -89,8 +90,8 @@ def choose_roms(parent, app_dir, system, titles):
 
     buttons = ttk.Frame(frame)
     buttons.pack(fill='x')
-    ttk.Button(buttons, text='キャンセル', command=close).pack(side='right')
-    ttk.Button(buttons, text='選択したROMを追加', command=lambda: close(True)).pack(side='right', padx=8)
+    ttk.Button(buttons, text=_tr('キャンセル'), command=close).pack(side='right')
+    ttk.Button(buttons, text=_tr('選択したROMを追加'), command=lambda: close(True)).pack(side='right', padx=8)
     query.trace_add('write', changed)
     dialog.protocol('WM_DELETE_WINDOW', close)
     refresh()

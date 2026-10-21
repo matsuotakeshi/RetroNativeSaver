@@ -2,7 +2,7 @@
 
 # RetroNativeSaver
 
-A Windows screensaver that displays multiple games in a tiled layout. Each tile runs a libretro core in its own child process. Grouped mode supports **up to 64 simultaneous game displays across multiple monitors**. Current version: **v0.21.24**.
+A Windows screensaver that displays multiple games in a tiled layout. Each tile runs a libretro core in its own child process. Grouped mode supports **up to 64 simultaneous game displays across multiple monitors**. Current version: **v0.21.26**.
 
 The project is licensed under **GNU GPL v3 (GPL-3.0-only)**. Third-party code, including X1/libretro components, retains its [own licenses](THIRD_PARTY_NOTICES.md).
 
@@ -79,7 +79,7 @@ Windows x64, Python, PyInstaller, and the libretro cores, ROMs, and any required
 
 **Place the entire application folder in a location writable by the Windows account that runs the screensaver**, such as `%LOCALAPPDATA%\RetroNativeSaver`.
 
-Runtime logs are normally written to `logs/` beside the EXE/SCR. The application also writes favorites and files under `state/`, such as the ROM catalog and blacklist/whitelist. Any configured save directories must be writable as well.
+When enabled, runtime logs are written to `logs/` beside the EXE/SCR; logging is off by default. The application also writes favorites and files under `state/`, such as the ROM catalog and blacklist/whitelist. Any configured save directories must be writable as well.
 
 Avoid protected locations such as `Program Files` and `C:\Windows\System32`. Keep the EXE/SCR, `_internal`, and the other accompanying files together, then run `install_saver.bat` from that folder to register the screensaver with Windows.
 
@@ -128,6 +128,33 @@ On-screen labels display `System / Game` on one line at the upper left of each t
 
 Scrolling is enabled by default, including when updating an existing configuration. The `overlay` settings `scroll_speed` (pixels/second, default 24), `scroll_pause_seconds` (pause at the left edge, default 2) and `scroll_gap` (minimum pixels between repeats, default 48) control its motion. Short labels also scroll. Set `scroll_speed` to `0` for a stationary single line, or `scroll_enabled` to `false` to restore the two-line display with `game_font_size` and `line_gap`. Keyboard selection/help messages remain stationary. Settings, saves, favorites and ROM selection are otherwise unchanged.
 
+## Settings dialog
+
+Open **Settings** in the Windows screensaver dialog, use RandomSaver's configuration command, or run `configure_saver.bat`. The EXE/SCR accepts `/c`, `/c:HWND`, or `/c HWND`; an optional `--config <path>` selects another existing configuration file.
+
+**General → Language / 言語** selects **Automatic (Windows)**, **English**, or **日本語**. Automatic is the default, including when `ui_language` is absent: Japanese for a Japanese Windows display language, English otherwise. Save with Apply / OK and reopen the window. Favorites, startup input, ROM selection, blacklist/whitelist, and application messages use the same saved preference. JSON stores `ui_language` as `auto`, `en`, or `ja`; game titles, user-defined names and paths are preserved. Windows file pickers, standard button captions and OS error details may follow the Windows language.
+
+- **General**: monitors, shared rotation time and random variation, asynchronous display, frame-rate cap, fades, keyboard controls, and log output.
+- **Title display**: one-line scrolling, font sizes, colors, spacing, and background opacity.
+- **Grouped display**: enable/disable grouped selection, normal/grouped weights, frame-rate cap, and included systems within the existing groups. Group membership and resource limits remain in JSON.
+- Buttons open the existing favorites/input editor and blacklist/whitelist editor, or update the ROM catalog without launching emulators.
+
+**OK** saves and closes; **Apply** saves; **Cancel** discards unsaved dialog edits. Settings take effect on the next saver launch. Management tools use the saved configuration and save their own changes independently; Cancel does not undo those changes. ROM catalog updates must finish before closing the settings dialog.
+
+The dialog updates only edited settings in `config.json`, preserving unknown keys, explicit group definitions, legacy options, and per-system files. Opening or applying an unchanged dialog does not rewrite the file. On save, the original file is backed up as `config.json.bak-...`, then replaced atomically; JSON formatting may change. A malformed file or a file changed externally is not overwritten. The dialog requires an existing config; it does not silently initialize defaults on errors.
+
+**Application logging is off by default**, including for existing configurations without the new `log_output_enabled` key. Enable **General → Log output** (Japanese UI: `全般 → ログを出力する`) or set `"log_output_enabled": true` to restore the daily logs in `logs/`. Supervisor, worker, tile-worker, and watchdog logs share the same session choice. Turning logging off does not remove old logs, disable in-memory monitoring, or change cleanup, saves, favorites, or ROM-list state. Explicit measurement runs with `RNS_STARTUP_TIMING=1` still create their requested startup traces. Files written independently by a libretro core are outside this application-log setting.
+
+### System-specific settings and RetroArch
+
+The **System settings** tab (Japanese UI: `機種別`) has a system selector populated from the configured `systems_dir`, including disabled systems. Select a system to edit its enabled state, name, core DLL, ROM/BIOS/save/assets folders, rotation time, concurrency/resource settings, renderer, ROM scanning and disk startup options, compatibility flags, title metadata, and core options. Core-option names and values are entered manually; opening the dialog does not load a core. System IDs and unedited or unknown JSON fields are preserved. Invalid files appear as errors without blocking the other systems.
+
+Edits are retained while switching systems. **Apply/OK** saves the common configuration and every edited system file; switching systems alone never saves. For optional per-system values, **Use shared/default** (`共通／既定を使用`) removes the local key so the existing runtime fallback applies. A system's temporary-save option still takes precedence over its save-folder setting. In grouped mode, the existing grouped capacity rules still override normal per-system concurrency. After changing ROM folders, extensions or other scan conditions, save and use **Update ROM catalog**; a reminder is shown. Saving settings is blocked while that update is running.
+
+All edited documents are validated and checked for external changes before writing starts. Each file is backed up and atomically replaced individually. If a later write fails, the dialog identifies the files already saved and retains the remaining edits for retry; this is not an all-files transaction. Cancel discards only edits that have not been saved.
+
+**General → RetroArch EXE** lets you browse for the executable used when pressing Enter on a selected game. It writes the existing `retroarch_path` key in `config.json`. Previously this option was available only in JSON. An empty value retains the existing search order: `retroarch.exe` above the selected core's `cores` directory, then beside the effective BIOS `system` directory. An explicit path takes precedence and never silently falls back to another executable. The handoff and emulator startup mechanisms are unchanged.
+
 ## Grouped mode
 
 The default selection ratio is 50% normal mode / 50% grouped mode. Adjust the ratio using `single_system_mode.normal_weight` and `grouped_weight`. One group is selected at startup, and ROM replacements stay within that group for the session.
@@ -156,7 +183,7 @@ python initialize_config.py
 python -m unittest discover -v
 ```
 
-The repository includes Windows regression tests. Historical code used for comparison is confined to `tests_fixtures/`. All 701 tests passed for v0.21.24 in this public repository configuration. This does not establish long-term compatibility with every system, ROM, or PC.
+The repository includes Windows regression tests. Historical code used for comparison is confined to `tests_fixtures/`. Run the tests before distributing a changed build. This does not establish long-term compatibility with every system, ROM, or PC.
 
 See [resource ownership and cleanup](docs/OWNERSHIP_NOTES.md) (Japanese) for responsibilities involving processes, cores, rendering resources, and configuration.
 

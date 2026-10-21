@@ -1,4 +1,5 @@
 """Favorite configuration and catalog matching; no emulator or Win32 imports."""
+from ui_text import tr as _tr
 import json
 import os
 from pathlib import Path
@@ -9,17 +10,17 @@ from favorite_titles import load_titles, display_title, title_database, choose_r
 
 def validate_favorites(data):
     if not isinstance(data, dict) or not isinstance(data.get('enabled', True), bool):
-        raise ValueError('お気に入り設定の形式が正しくありません。')
+        raise ValueError(_tr('お気に入り設定の形式が正しくありません。'))
     items = data.get('items', [])
     if not isinstance(items, list):
-        raise ValueError('items は一覧で指定してください。')
+        raise ValueError(_tr('items は一覧で指定してください。'))
     clean = []
     seen = set()
     for item in items:
         if not isinstance(item, dict) or not all(
             isinstance(item.get(k), str) and item[k].strip() for k in ('system', 'rom')
         ):
-            raise ValueError('各項目には機種IDとROMファイルが必要です。')
+            raise ValueError(_tr('各項目には機種IDとROMファイルが必要です。'))
         entry = {k: item[k].strip() for k in ('system', 'rom')}
         if 'startup_input' in item:
             from favorite_input import validate_input
@@ -114,7 +115,7 @@ def show_favorites_editor(app_dir, systems_dir, favorites_path):
     from tkinter import ttk, filedialog, messagebox
 
     root = tk.Tk()
-    root.title('Retro Native Saver — お気に入り設定')
+    root.title(_tr('Retro Native Saver — お気に入り設定'))
     root.geometry('1160x670')
     root.minsize(950, 540)
     try:
@@ -125,18 +126,18 @@ def show_favorites_editor(app_dir, systems_dir, favorites_path):
             if system.get('enabled', True):
                 systems.append(system)
     except Exception as exc:
-        messagebox.showerror('設定を読み込めません', str(exc), parent=root)
+        messagebox.showerror(_tr('設定を読み込めません'), str(exc), parent=root)
         root.destroy()
         return
     title_maps = {str(s['id']).casefold(): load_titles(app_dir, s) for s in systems}
     frame = ttk.Frame(root, padding=16)
     frame.pack(fill='both', expand=True)
     enabled = tk.BooleanVar(value=data['enabled'])
-    ttk.Checkbutton(frame, text='毎サイクル、お気に入りからランダムに1本を必ず選ぶ', variable=enabled).pack(anchor='w')
-    ttk.Label(frame, text='先頭の1枠に表示します。残りの枠は通常のランダム表示です。').pack(anchor='w', pady=(4, 12))
+    ttk.Checkbutton(frame, text=_tr('毎サイクル、お気に入りからランダムに1本を必ず選ぶ'), variable=enabled).pack(anchor='w')
+    ttk.Label(frame, text=_tr('先頭の1枠に表示します。残りの枠は通常のランダム表示です。')).pack(anchor='w', pady=(4, 12))
     row = ttk.Frame(frame)
     row.pack(fill='x')
-    ttk.Label(row, text='機種：').pack(side='left')
+    ttk.Label(row, text=_tr('機種：')).pack(side='left')
     names = [f"{s.get('name', s['id'])}  ({s['id']})" for s in systems]
     choice = ttk.Combobox(row, values=names, state='readonly', width=40)
     choice.pack(side='left', padx=6)
@@ -150,10 +151,10 @@ def show_favorites_editor(app_dir, systems_dir, favorites_path):
     area = ttk.Frame(frame)
     area.pack(fill='both', expand=True, pady=12)
     table = ttk.Treeview(area, columns=('system', 'title', 'input', 'rom'), show='headings', selectmode='extended')
-    table.heading('system', text='機種')
-    table.heading('title', text='タイトル')
-    table.heading('input', text='自動入力')
-    table.heading('rom', text='ROMファイル')
+    table.heading('system', text=_tr('機種'))
+    table.heading('title', text=_tr('タイトル'))
+    table.heading('input', text=_tr('自動入力'))
+    table.heading('rom', text=_tr('ROMファイル'))
     table.column('input', width=210, stretch=False)
     table.column('system', width=130, stretch=False)
     table.column('title', width=310)
@@ -177,14 +178,14 @@ def show_favorites_editor(app_dir, systems_dir, favorites_path):
         try:
             auto_input = input_editor.value()
         except ValueError as exc:
-            messagebox.showerror('自動入力の設定を確認してください', str(exc), parent=root)
+            messagebox.showerror(_tr('自動入力の設定を確認してください'), str(exc), parent=root)
             return
         system = systems[choice.current()]
         folder = Path(system.get('rom_dir', app_dir))
         if title_database(system):
             paths = choose_roms(root, app_dir, system, title_maps.get(str(system['id']).casefold(), {}))
         else:
-            paths = filedialog.askopenfilenames(parent=root, title='お気に入りにするROMを選択（複数選択可）',
+            paths = filedialog.askopenfilenames(parent=root, title=_tr('お気に入りにするROMを選択（複数選択可）'),
                                                 initialdir=str(folder if folder.exists() else app_dir))
         if paths:
             items.extend(dict(system=system['id'], rom=str(Path(p)),
@@ -202,12 +203,12 @@ def show_favorites_editor(app_dir, systems_dir, favorites_path):
         nonlocal dirty
         selection = table.selection()
         if not selection:
-            messagebox.showinfo('項目を選択してください', '自動入力を変更するお気に入りを選択してください。', parent=root)
+            messagebox.showinfo(_tr('項目を選択してください'), _tr('自動入力を変更するお気に入りを選択してください。'), parent=root)
             return
         try:
             value = input_editor.value()
         except ValueError as exc:
-            messagebox.showerror('自動入力の設定を確認してください', str(exc), parent=root)
+            messagebox.showerror(_tr('自動入力の設定を確認してください'), str(exc), parent=root)
             return
         for selected in selection:
             entry = items[int(selected)]
@@ -233,28 +234,28 @@ def show_favorites_editor(app_dir, systems_dir, favorites_path):
         try:
             save_favorites(favorites_path, {'enabled': enabled.get(), 'items': items})
         except Exception as exc:
-            messagebox.showerror('保存できません', str(exc), parent=root)
+            messagebox.showerror(_tr('保存できません'), str(exc), parent=root)
             return False
         dirty = False
         data['enabled'] = enabled.get()
-        messagebox.showinfo('保存しました', '次の表示サイクルから反映されます。', parent=root)
+        messagebox.showinfo(_tr('保存しました'), _tr('次の表示サイクルから反映されます。'), parent=root)
         return True
 
     def close():
         if dirty or enabled.get() != data['enabled']:
-            answer = messagebox.askyesnocancel('変更の保存', '変更を保存して閉じますか？', parent=root)
+            answer = messagebox.askyesnocancel(_tr('変更の保存'), _tr('変更を保存して閉じますか？'), parent=root)
             if answer is None or (answer and not save()):
                 return
         root.destroy()
 
-    ttk.Button(row, text='ROMを追加…', command=add).pack(side='left')
+    ttk.Button(row, text=_tr('ROMを追加…'), command=add).pack(side='left')
     buttons = ttk.Frame(frame)
     buttons.pack(side='bottom', fill='x', before=area)
-    ttk.Button(buttons, text='自動入力を適用', command=apply_input).pack(side='left', padx=(0,8))
-    ttk.Button(buttons, text='選択した項目を削除', command=remove).pack(side='left')
-    ttk.Button(buttons, text='閉じる', command=close).pack(side='right')
-    ttk.Button(buttons, text='保存', command=save).pack(side='right', padx=8)
-    ttk.Label(frame, text='お気に入り枠ではブラックリストを無視します。負荷上限・起動条件・実行中の障害隔離は維持します。\n全件利用できない場合は通常表示を続け、理由をログに記録します。').pack(anchor='w', pady=(12, 0))
+    ttk.Button(buttons, text=_tr('自動入力を適用'), command=apply_input).pack(side='left', padx=(0,8))
+    ttk.Button(buttons, text=_tr('選択した項目を削除'), command=remove).pack(side='left')
+    ttk.Button(buttons, text=_tr('閉じる'), command=close).pack(side='right')
+    ttk.Button(buttons, text=_tr('保存'), command=save).pack(side='right', padx=8)
+    ttk.Label(frame, text=_tr('お気に入り枠ではブラックリストを無視します。負荷上限・起動条件・実行中の障害隔離は維持します。\n全件利用できない場合は通常表示を続け、理由をログに記録します。')).pack(anchor='w', pady=(12, 0))
     refresh()
     root.protocol('WM_DELETE_WINDOW', close)
     root.mainloop()

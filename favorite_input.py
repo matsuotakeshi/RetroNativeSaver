@@ -1,4 +1,5 @@
 """Per-ROM automatic libretro input; never sends Windows input messages."""
+from ui_text import tr as _tr
 import ctypes
 import math
 
@@ -154,37 +155,37 @@ KeyboardEvent = ctypes.CFUNCTYPE(None, ctypes.c_bool, ctypes.c_uint,
 def validate_input(value):
     if isinstance(value, list):
         if not value or any(not isinstance(step, dict) for step in value):
-            raise ValueError('連続入力には1つ以上の入力を指定してください。')
+            raise ValueError(_tr('連続入力には1つ以上の入力を指定してください。'))
         steps = [validate_input(step) for step in value]
         if any(b['delay_seconds'] < a['delay_seconds'] for a, b in zip(steps, steps[1:])):
-            raise ValueError('入力は開始からの秒数が小さい順に並べてください。')
+            raise ValueError(_tr('入力は開始からの秒数が小さい順に並べてください。'))
         return steps
     if not isinstance(value, dict):
-        raise ValueError('自動入力は秒数・入力種類・キーを指定してください。')
+        raise ValueError(_tr('自動入力は秒数・入力種類・キーを指定してください。'))
     delay = value.get('delay_seconds')
     if isinstance(delay, bool) or not isinstance(delay, (int, float)):
-        raise ValueError('入力までの秒数は0以上の有限の数値にしてください。')
+        raise ValueError(_tr('入力までの秒数は0以上の有限の数値にしてください。'))
     try:
         delay = float(delay)
     except OverflowError:
-        raise ValueError('入力までの秒数は0以上の有限の数値にしてください。') from None
+        raise ValueError(_tr('入力までの秒数は0以上の有限の数値にしてください。')) from None
     if not math.isfinite(delay) or delay < 0:
-        raise ValueError('入力までの秒数は0以上の有限の数値にしてください。')
+        raise ValueError(_tr('入力までの秒数は0以上の有限の数値にしてください。'))
     device = value.get('device')
     key = value.get('key')
     if not isinstance(device, str) or device not in KEYS or not isinstance(key, str) or key not in KEYS[device]:
-        raise ValueError('入力種類とキーを一覧から選択してください。')
+        raise ValueError(_tr('入力種類とキーを一覧から選択してください。'))
     return dict(delay_seconds=delay, device=device, key=key)
 
 
 def input_summary(value):
     if value is None:
-        return '設定なし'
+        return _tr('設定なし')
     value = validate_input(value)
     if isinstance(value, list):
         return ' → '.join(input_summary(step) for step in value)
-    kind = 'ボタン' if value['device'] == 'joypad' else 'キー'
-    return f"{value['delay_seconds']:g}秒後 / {kind}: {value['key']}"
+    kind = _tr('ボタン') if value['device'] == 'joypad' else _tr('キー')
+    return _tr('{v0:g}秒後 / {v1}: {v2}', v0=value['delay_seconds'], v1=kind, v2=value['key'])
 
 
 def system_for_favorite_rom(system, rom, favorites):
