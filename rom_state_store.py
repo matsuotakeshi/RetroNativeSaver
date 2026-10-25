@@ -1,8 +1,7 @@
 """Persistent ROM-list file I/O with the existing recovery policies.
 
-UTF-8 (not utf-8-sig), PID temp names, replace order, log text, and the different
-cleanup behavior of state saving and whitelist seeding are intentional here.
-This extraction does not add multi-writer synchronization.
+Writers serialize read/modify/replace across processes. Failed reads never
+replace existing evidence; session-only containment remains available.
 """
 import json
 import os
@@ -20,20 +19,24 @@ def _read_state_json(path):
 
 
 def _write_state_json(path, state):
-    path.parent.mkdir(parents=True, exist_ok=True)
-    tmp_path = path.with_name(
-        f"{path.name}.tmp.{os.getpid()}"
-    )
-    tmp_path.write_text(
-        json.dumps(
-            state,
-            ensure_ascii=False,
-            indent=2,
-            sort_keys=True,
-        ),
-        encoding="utf-8",
-    )
-    os.replace(tmp_path, path)
+    from file_transaction import file_locks
+    with file_locks(path):
+        original = path.read_bytes() if path.exists() else None
+        path.parent.mkdir(parents=True, exist_ok=True)
+        tmp_path = path.with_name(
+            f"{path.name}.tmp.{os.getpid()}"
+        )
+        tmp_path.write_text(
+            json.dumps(
+                state,
+                ensure_ascii=False,
+                indent=2,
+                sort_keys=True,
+            ),
+            encoding="utf-8",
+        )
+        from file_transaction import replace_checked
+        replace_checked(tmp_path, path, original)
 
 
 def _empty_persistent_rom_state():
@@ -64,7 +67,7 @@ def _load_persistent_rom_state(path):
         return _empty_persistent_rom_state()
 
 
-def _save_persistent_rom_state(path, state):
+def _save_state_locked(path, state):
     """
     Atomically persist blacklist/evidence state.
 
@@ -89,6 +92,18 @@ def _save_persistent_rom_state(path, state):
                 tmp_path.unlink()
         except Exception:
             pass
+        return False
+
+
+def _save_persistent_rom_state(path, state):
+    from file_transaction import file_lock
+    try:
+        # Keep failed-temp cleanup inside the same lock too: another thread in
+        # this process uses the same PID suffix and must not lose its new temp.
+        with file_lock(path):
+            return _save_state_locked(path, state)
+    except Exception as exc:
+        print(f'[persistent-safety] could not save {path}: {exc}', flush=True)
         return False
 
 
@@ -121,7 +136,10 @@ def _load_persistent_rom_whitelist(path, seed_path=None):
             seed_raw = json.loads(seed_path.read_text(encoding="utf-8"))
             if not isinstance(seed_raw, dict):
                 raise ValueError("seed root is not an object")
-            _write_state_json(path, seed_raw)
+            from file_transaction import file_lock
+            with file_lock(path):
+                if not path.exists():
+                    _write_state_json(path, seed_raw)
             print(
                 f"[persistent-safety] seeded whitelist from "
                 f"{seed_path} -> {path}",
@@ -152,7 +170,7 @@ import datetime
 from rom_list_policy import _persistent_entry_for_rom
 
 
-def _record_persistent_rom_failure(
+def _record_failure_in_state(
     state,
     path,
     session_id,
@@ -211,3 +229,22 @@ def _record_persistent_rom_failure(
 
     _save_persistent_rom_state(path, state)
     return failure_sessions, newly_blacklisted, False
+
+
+def _record_persistent_rom_failure(state, path, session_id, threshold_sessions,
+                                   system_name, rom_name, phase, failure_kind):
+    from file_transaction import file_lock
+    from rom_list_editor import read_state
+    try:
+        with file_lock(path):
+            if path is not None:
+                # Do not turn an unreadable or malformed existing file into an
+                # empty state and then overwrite it on the next crash.
+                fresh, _ = read_state(path, 'black')
+                state.clear()
+                state.update(fresh)
+            return _record_failure_in_state(state, path, session_id, threshold_sessions,
+                                            system_name, rom_name, phase, failure_kind)
+    except (OSError, ValueError) as exc:
+        print(f'[persistent-safety] cannot merge failure evidence: {exc}', flush=True)
+        return 0, False, False

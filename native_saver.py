@@ -1526,46 +1526,41 @@ class WGLHardwareContext:
         return self._capture_single_bgra(w, h)
 
     def _read_bgra_buffer(self, w, h):
+        from wgl_safety import gl_checked
+        gl_checked(opengl32, 'prepare framebuffer readback')
         buf = (ctypes.c_ubyte * (w * h * 4))()
         opengl32.glReadPixels(
             0, 0, w, h,
             GL_BGRA, GL_UNSIGNED_BYTE,
             ctypes.cast(buf, c_void_p),
         )
+        gl_checked(opengl32, 'glReadPixels')
         return buf
 
     def _capture_shared_bgra(self, w, h):
         from wgl_safety import checked
+        from wgl_readback import readback_state
         checked('activate core for capture', self.make_current())
         opengl32.glFinish()
         try:
             checked('activate frontend for capture', self.make_frontend_current())
-            self.glBindFramebuffer(GL_READ_FRAMEBUFFER, self.frontend_read_fbo)
-            opengl32.glPixelStorei(GL_PACK_ALIGNMENT, 4)
-            opengl32.glReadBuffer(GL_COLOR_ATTACHMENT0)
-            buf = self._read_bgra_buffer(w, h)
+            with readback_state(self, opengl32):
+                self.glBindFramebuffer(GL_READ_FRAMEBUFFER, self.frontend_read_fbo)
+                opengl32.glReadBuffer(GL_COLOR_ATTACHMENT0)
+                buf = self._read_bgra_buffer(w, h)
         finally:
             checked('restore core after capture', self.make_current())
         return bytes(buf), w, h
 
     def _capture_single_bgra(self, w, h):
         from wgl_safety import checked
+        from wgl_readback import readback_state
         checked('activate core for capture', self.make_current())
-        prev_fbo = c_int(0)
-        prev_read_buffer = c_int(0)
-        opengl32.glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, byref(prev_fbo))
-        opengl32.glGetIntegerv(GL_READ_BUFFER, byref(prev_read_buffer))
-        try:
+        with readback_state(self, opengl32):
             self.glBindFramebuffer(GL_READ_FRAMEBUFFER, self.fbo)
             opengl32.glFinish()
-            opengl32.glPixelStorei(GL_PACK_ALIGNMENT, 4)
             opengl32.glReadBuffer(GL_COLOR_ATTACHMENT0)
             buf = self._read_bgra_buffer(w, h)
-        finally:
-            try:
-                self.glBindFramebuffer(GL_READ_FRAMEBUFFER, c_uint(prev_fbo.value).value)
-            finally:
-                opengl32.glReadBuffer(c_uint(prev_read_buffer.value).value)
         return bytes(buf), w, h
 
 
@@ -3008,7 +3003,8 @@ def prepare_dolphin_user_config(save_dir: Path, core_values: dict):
 def start_slot_with_retry(slot_index, initial_system, initial_rom,
                           systems, catalogs, cfg, temp_root,
                           failed_roms, max_attempts=5, worker_mode=False,
-                          cycle_number=0, cycle_group_usage=None, favorite_retries=None, favorite_inputs=None):
+                          cycle_number=0, cycle_group_usage=None, favorite_retries=None, favorite_inputs=None,
+                          cycle_picks=None):
     """
     Start one slot. If a selected ROM/core fails to load, mark that ROM as failed
     for this run and retry with another candidate. The whole saver continues.
@@ -3018,6 +3014,7 @@ def start_slot_with_retry(slot_index, initial_system, initial_rom,
     candidates, enabled_supported = initial_retry_candidates(initial_system, initial_rom, systems, catalogs, failed_roms, favorite_retries)
     favorite_fallback_logged = False
     preferred_system = initial_system
+    other_picks = None if cycle_picks is None else cycle_picks[:slot_index] + cycle_picks[slot_index + 1:]
 
     attempt = 0
     while attempt < max_attempts:
@@ -3030,10 +3027,17 @@ def start_slot_with_retry(slot_index, initial_system, initial_rom,
                 print("[favorites] favorite startup candidates exhausted; trying normal ROMs", flush=True)
                 favorite_fallback_logged = True
             from slot_selection import normal_retry_candidate
-            selected = normal_retry_candidate(preferred_system, enabled_supported, catalogs, failed_roms, cycle_group_usage, cfg)
+            selected = normal_retry_candidate(preferred_system, enabled_supported, catalogs, failed_roms, cycle_group_usage, cfg, other_picks)
             if selected is None:
                 continue
             system, rom = selected
+
+        if other_picks is not None:
+            from resource_policy import independent_fits
+            # Include reservations for slots not yet started, as well as the
+            # actual successful replacements of preceding slots.
+            if not independent_fits(system, other_picks, cfg):
+                continue
 
         if favorite_inputs is not None:
             from favorite_input import system_for_favorite_rom
@@ -3094,6 +3098,11 @@ def start_slot_with_retry(slot_index, initial_system, initial_rom,
             if favorite_retries is not None and cycle_group_usage is not None:
                 from favorites import record_favorite_startup
                 record_favorite_startup(initial_system, system, rom, favorite_retries, cycle_group_usage)
+            elif cycle_group_usage is not None:
+                from resource_policy import replace_cycle_usage
+                replace_cycle_usage(initial_system, system, cycle_group_usage)
+            if cycle_picks is not None:
+                cycle_picks[slot_index] = (system, rom)
 
             return core, av, system, rom
 
@@ -3133,6 +3142,8 @@ def start_slot_with_retry(slot_index, initial_system, initial_rom,
                         hard_exit_process(WORKER_RESTART_EXIT_CODE)
                 else:
                     try:
+                        write_runtime_trace('START_CLOSE_ENTER', cycle=cycle_number, slot=slot_index + 1,
+                                            system=system.get('name', sid), rom=rom.name)
                         core.close()
                         if worker_mode and (getattr(core, '_cleanup_requires_recycle', False) or getattr(core, '_native_fault_during_close', False)):
                             hard_exit_process(WORKER_RESTART_EXIT_CODE)
@@ -3340,8 +3351,10 @@ def main():
     from system_config import cycle_settings
     cycle_enabled, cycle_seconds, retry_attempts, overlay_cfg, fade_enabled, fade_duration, runtime_heartbeat_seconds = cycle_settings(cfg, args, preview_mode)
 
+    from worker_workspace import worker_temp_parent
     temp = tempfile.TemporaryDirectory(
         prefix="retro_native_multi_",
+        dir=worker_temp_parent(),
         ignore_cleanup_errors=True,
     )
     temp_root = Path(temp.name)
@@ -3413,6 +3426,7 @@ def main():
                         cycle_group_usage=cycle_group_usage,
                         favorite_retries=favorite_retries,
                         favorite_inputs=favorites,
+                        cycle_picks=picks,
                     )
                     cores.append(core)
                     av_infos.append(av)
@@ -3616,7 +3630,7 @@ def main():
                         close_system, close_rom = ("?", "?")
 
                     write_runtime_trace(
-                        "CLOSE_ENTER",
+                        "CLOSE_EXIT_ENTER" if win.should_close else "CLOSE_ENTER",
                         cycle=cycle_number,
                         slot=slot_number,
                         system=close_system,
@@ -3879,9 +3893,20 @@ def supervisor_main():
     worker_assigned = False
     launch_channel = None
     launch_pick = None
+    workspace = None
+    from worker_workspace import WorkerWorkspace
+
+    def finish_worker_files():
+        nonlocal workspace
+        if workspace is not None:
+            workspace.cleanup(kernel32, job, proc, worker_assigned,
+                              backdrop.pump if backdrop is not None else None)
+            workspace = None
 
     from supervisor_safety import SupervisorSafety
     from supervisor_watchdog import WorkerWatchdog, terminate_hung_worker
+    from runtime_policy import RestartBudget
+    restart_budget = RestartBudget()
     safety = SupervisorSafety(supervisor_cfg, resolve_app_relative_path)
     startup.measure("supervisor_safety", safety.load)
 
@@ -3903,6 +3928,7 @@ def supervisor_main():
             flush=True,
         )
         child_env = os.environ.copy()
+        workspace.apply(child_env)
         child_env['RNS_SLOT_SESSION_ID'] = safety.persistent_session_id
         config_snapshot.apply(child_env)
         if launch_channel is not None:
@@ -4007,6 +4033,7 @@ def supervisor_main():
             raise RuntimeError("Cannot start saver without a kill-on-close Job Object")
 
         while True:
+            finish_worker_files()
             if backdrop is not None:
                 backdrop.pump()
                 if backdrop.power_idle:
@@ -4017,6 +4044,9 @@ def supervisor_main():
             if controls_enabled(supervisor_cfg) and proc is not None:
                 from saver_actions import refresh_safety
                 refresh_safety(safety)
+            proc = None
+            worker_assigned = False
+            workspace = WorkerWorkspace()
             cmd, child_env = prepare_worker_launch()
 
             # Reset the last-location record before every worker start.
@@ -4059,6 +4089,7 @@ def supervisor_main():
                     if backdrop.power_idle:
                         if supervisor_cfg.get("independent_slots_enabled", False):
                             return wait_for_scheduler_standby(backdrop, job, proc, runtime_trace_mm)
+                        finish_worker_files()
                         standby_job, job = job, None
                         return wait_for_display_resume(backdrop, standby_job)
                     if backdrop.should_close:
@@ -4087,6 +4118,7 @@ def supervisor_main():
             if backdrop is not None:
                 backdrop.pump()
                 if backdrop.power_idle:
+                    finish_worker_files()
                     standby_job, job = job, None
                     return wait_for_display_resume(backdrop, standby_job)
                 if backdrop.should_close:
@@ -4137,6 +4169,11 @@ def supervisor_main():
                         flush=True,
                     )
 
+            if code == WORKER_RESTART_EXIT_CODE or unsigned_code in native_crash_codes:
+                if not restart_budget.allow(code, snapshot, watchdog.watchdog_triggered):
+                    print('[supervisor] repeated abnormal worker exits; closing session', flush=True)
+                    return 1
+
             if code == WORKER_RESTART_EXIT_CODE:
                 print("[supervisor] worker recycle -> next cycle", flush=True)
                 continue
@@ -4160,7 +4197,8 @@ def supervisor_main():
         try:
             cleanup_supervisor(kernel32, job, backdrop, guard, runtime_trace_mm,
                                config_snapshot, restore_windows_desktop,
-                               unassigned=proc if not worker_assigned else None)
+                               unassigned=proc if not worker_assigned else None,
+                               workspace_cleanup=finish_worker_files)
         finally:
             if launch_channel is not None:
                 launch_channel.close()
@@ -4204,12 +4242,12 @@ if __name__ == "__main__":
 
         if "--worker" in sys.argv[1:]:
             print(
-                "[worker] unhandled exception; force-recycling worker "
+                "[worker] unhandled exception; stopping session "
                 "to avoid native shutdown hang",
                 file=sys.stderr,
                 flush=True,
             )
-            hard_exit_process(WORKER_RESTART_EXIT_CODE)
+            hard_exit_process(76)
 
         from core_lifecycle import has_retained_resources
         from process_cleanup import has_retained_resources as has_process_resources

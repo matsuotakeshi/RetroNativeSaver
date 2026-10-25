@@ -38,49 +38,52 @@ def blacklist_rows(black, white):
 
 
 def add_to_whitelist(path, selected, seed=None):
-    """Reload immediately before adding; preserve unknown fields and other registrations."""
-    path = Path(path)
-    data, original = read_state(path, 'white')
-    if original is None and seed and Path(seed).exists():
-        data, _ = read_state(seed, 'white')
-    keys = white_keys(data)
-    added = 0
-    for system, rom in selected:
-        if not isinstance(system, str) or not system.strip() or not isinstance(rom, str) or not rom.strip():
-            raise ValueError(_tr('機種名とROM名が必要です。'))
-        key = (system.casefold(), rom.casefold())
-        if key in keys:
-            continue
-        stored = next((s for s in data['systems'] if s.casefold() == system.casefold()), system)
-        data['systems'].setdefault(stored, []).append(rom)
-        keys.add(key)
-        added += 1
-    if not added:
-        return 0, None
-    path.parent.mkdir(parents=True, exist_ok=True)
-    temp = None
-    backup = None
-    try:
-        with tempfile.NamedTemporaryFile('w', encoding='utf-8', dir=path.parent,
-                                         prefix=path.name + '.', suffix='.tmp', delete=False) as f:
-            temp = Path(f.name)
-            json.dump(data, f, ensure_ascii=False, indent=2)
-            f.write('\n')
-            f.flush()
-            os.fsync(f.fileno())
-        current = path.read_bytes() if path.exists() else None
-        if current != original:
-            raise RuntimeError(_tr('保存中に別の変更を検出しました。「再読み込み」してやり直してください。'))
-        if original is not None:
-            stamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
-            backup = path.with_name(path.name + '.' + stamp + '.' + uuid.uuid4().hex[:8] + '.bak')
-            with backup.open('xb') as f:
-                f.write(original)
-        os.replace(temp, path)
-    finally:
-        if temp is not None and temp.exists():
-            temp.unlink()
-    return added, backup
+    from file_transaction import file_locks
+    with file_locks(path):
+        """Reload immediately before adding; preserve unknown fields and other registrations."""
+        path = Path(path)
+        data, original = read_state(path, 'white')
+        if original is None and seed and Path(seed).exists():
+            data, _ = read_state(seed, 'white')
+        keys = white_keys(data)
+        added = 0
+        for system, rom in selected:
+            if not isinstance(system, str) or not system.strip() or not isinstance(rom, str) or not rom.strip():
+                raise ValueError(_tr('機種名とROM名が必要です。'))
+            key = (system.casefold(), rom.casefold())
+            if key in keys:
+                continue
+            stored = next((s for s in data['systems'] if s.casefold() == system.casefold()), system)
+            data['systems'].setdefault(stored, []).append(rom)
+            keys.add(key)
+            added += 1
+        if not added:
+            return 0, None
+        path.parent.mkdir(parents=True, exist_ok=True)
+        temp = None
+        backup = None
+        try:
+            with tempfile.NamedTemporaryFile('w', encoding='utf-8', dir=path.parent,
+                                             prefix=path.name + '.', suffix='.tmp', delete=False) as f:
+                temp = Path(f.name)
+                json.dump(data, f, ensure_ascii=False, indent=2)
+                f.write('\n')
+                f.flush()
+                os.fsync(f.fileno())
+            current = path.read_bytes() if path.exists() else None
+            if current != original:
+                raise RuntimeError(_tr('保存中に別の変更を検出しました。「再読み込み」してやり直してください。'))
+            if original is not None:
+                stamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
+                backup = path.with_name(path.name + '.' + stamp + '.' + uuid.uuid4().hex[:8] + '.bak')
+                with backup.open('xb') as f:
+                    f.write(original)
+            from file_transaction import replace_checked
+            replace_checked(temp, path, original)
+        finally:
+            if temp is not None and temp.exists():
+                temp.unlink()
+        return added, backup
 
 
 def show_rom_list_editor(app_dir, config_path):

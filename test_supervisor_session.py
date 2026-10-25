@@ -96,6 +96,7 @@ class SupervisorSessionTests(unittest.TestCase):
         exec(compile(ast.Module(body=[fn],type_ignores=[]),'<actual supervisor>','exec'),ns)
         with patch.object(launch_options,'load_supervisor_config',return_value=cfg), \
              patch.object(config_snapshot,'ConfigSnapshot',return_value=frozen), \
+             patch('worker_workspace.WorkerWorkspace'), \
              patch.object(retroarch_launch,'LaunchChannel',return_value=channel), \
              patch.object(retroarch_launch,'launch',side_effect=launch), \
              patch('process_cleanup.retain'), \
@@ -139,7 +140,7 @@ class SupervisorSessionTests(unittest.TestCase):
 
     def test_runtime_hang_snapshot_survives_missing_final_trace(self):
         snap=dict(phase='RUN_ENTER',system='A',rom='game.zip')
-        result,error,events,launches,_=self.run_session([(0,2),(0,0)],snapshot=snap)
+        result,error,events,launches,_=self.run_session([(0,3),(0,0)],snapshot=snap)
         self.assertIsNone(error);self.assertEqual(result,0)
         self.assertIn(('terminate',100),events)
         self.assertEqual(json.loads(launches[1]['QUARANTINE']),{'A':['game.zip']})

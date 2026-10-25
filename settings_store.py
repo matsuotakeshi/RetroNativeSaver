@@ -188,27 +188,32 @@ class SettingsDocument:
         return result
 
     def save(self, changes):
-        result = self.check_changes(changes)
-        if result is None:
+        if self.check_changes(changes) is None:
             return None
-        newline = '\r\n' if b'\r\n' in self.original else '\n'
-        payload = (json.dumps(result, ensure_ascii=False, indent=2, allow_nan=False) + '\n').replace('\n', newline).encode('utf-8')
-        backup = self.path.with_name(self.path.name + '.bak-' + datetime.datetime.now().strftime('%Y%m%d-%H%M%S') + '-' + uuid.uuid4().hex[:8])
-        fd, name = tempfile.mkstemp(prefix=self.path.name + '.', suffix='.tmp', dir=self.path.parent)
-        temporary = Path(name)
-        try:
-            with os.fdopen(fd, 'wb') as stream:
-                stream.write(payload)
-                stream.flush()
-                os.fsync(stream.fileno())
-            with backup.open('xb') as stream:
-                stream.write(self.original)
-                stream.flush()
-                os.fsync(stream.fileno())
-            if self.path.read_bytes() != self.original:
-                raise ValueError(_tr('保存中に設定ファイルが変更されました。画面を開き直してください。'))
-            os.replace(temporary, self.path)
-        finally:
-            temporary.unlink(missing_ok=True)
-        self.original, self.data = payload, result
-        return backup
+        from file_transaction import file_locks
+        with file_locks(self.path):
+            result = self.check_changes(changes)
+            if result is None:
+                return None
+            newline = '\r\n' if b'\r\n' in self.original else '\n'
+            payload = (json.dumps(result, ensure_ascii=False, indent=2, allow_nan=False) + '\n').replace('\n', newline).encode('utf-8')
+            backup = self.path.with_name(self.path.name + '.bak-' + datetime.datetime.now().strftime('%Y%m%d-%H%M%S') + '-' + uuid.uuid4().hex[:8])
+            fd, name = tempfile.mkstemp(prefix=self.path.name + '.', suffix='.tmp', dir=self.path.parent)
+            temporary = Path(name)
+            try:
+                with os.fdopen(fd, 'wb') as stream:
+                    stream.write(payload)
+                    stream.flush()
+                    os.fsync(stream.fileno())
+                with backup.open('xb') as stream:
+                    stream.write(self.original)
+                    stream.flush()
+                    os.fsync(stream.fileno())
+                if self.path.read_bytes() != self.original:
+                    raise ValueError(_tr('保存中に設定ファイルが変更されました。画面を開き直してください。'))
+                from file_transaction import replace_checked
+                replace_checked(temporary, self.path, self.original)
+            finally:
+                temporary.unlink(missing_ok=True)
+            self.original, self.data = payload, result
+            return backup

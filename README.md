@@ -2,7 +2,7 @@
 
 # RetroNativeSaver
 
-A Windows screensaver that displays multiple games in a tiled layout. Each tile runs a libretro core in its own child process. Grouped mode supports **up to 64 simultaneous game displays across multiple monitors**. Current version: **v0.21.26**.
+A Windows screensaver that displays multiple games in a tiled layout. Each tile runs a libretro core in its own child process. Grouped mode supports **up to 64 simultaneous game displays across multiple monitors**. Current version: **v0.22**.
 
 The project is licensed under **GNU GPL v3 (GPL-3.0-only)**. Third-party code, including X1/libretro components, retains its [own licenses](THIRD_PARTY_NOTICES.md).
 

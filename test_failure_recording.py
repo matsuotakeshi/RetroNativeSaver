@@ -26,7 +26,7 @@ class FailureRecordingTests(unittest.TestCase):
         clock=SimpleNamespace(datetime=Clock,timezone=datetime.timezone)
         with patch.object(module,'datetime',clock),patch.object(module,'_save_persistent_rom_state',save):
             for session,threshold in (('one',2),('one',2),('two',2),('three',2)):
-                try:out=module._record_persistent_rom_failure(state,'state.json',session,threshold,'A','GAME.zip','RUN_ENTER','native')
+                try:out=(module._record_failure_in_state if module is current else module._record_persistent_rom_failure)(state,'state.json',session,threshold,'A','GAME.zip','RUN_ENTER','native')
                 except Exception as exc:out=(type(exc).__name__,str(exc))
                 outputs.append(copy.deepcopy(out))
         return state,events,outputs
@@ -43,11 +43,11 @@ class FailureRecordingTests(unittest.TestCase):
         results=[]
         for module in (old,current):
             with tempfile.TemporaryDirectory() as temp:
-                path=Path(temp)/'state.json'; state={}; values=[]
+                path=Path(temp)/'state.json'; state={'version':1,'systems':{}}; values=[]
                 with patch.object(module,'datetime',clock):
                     for session in ('one','one','two'):
                         values.append(module._record_persistent_rom_failure(state,path,session,2,'機種','GAME.zip','RUN_ENTER','native'))
-                results.append((values,state,path.read_bytes(),sorted(p.name for p in path.parent.iterdir())))
+                results.append((values,state,path.read_bytes(),sorted(p.name for p in path.parent.iterdir() if p.suffix != ".lock")))
         self.assertEqual(*results)
 
     def test_actual_write_failure_preserves_memory_state_and_log(self):
@@ -55,7 +55,7 @@ class FailureRecordingTests(unittest.TestCase):
         for module in (old,current):
             state={}; log=io.StringIO()
             with patch.object(module,'datetime',clock),patch.object(current,'_write_state_json',side_effect=PermissionError('blocked')),contextlib.redirect_stdout(log):
-                value=module._record_persistent_rom_failure(state,Path('state.json'),'one',1,'A','game','RUN_ENTER','native')
+                value=(module._record_failure_in_state if module is current else module._record_persistent_rom_failure)(state,Path('state.json'),'one',1,'A','game','RUN_ENTER','native')
             results.append((value,state,log.getvalue()))
         self.assertEqual(*results)
         self.assertTrue(results[1][1]['systems']['A']['game']['blacklisted'])

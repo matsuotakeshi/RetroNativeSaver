@@ -75,7 +75,7 @@ def cleanup_scheduler(api, job, slots, dispose, temp):
 
 
 def cleanup_supervisor(kernel, job, backdrop, guard, trace, snapshot, restore,
-                       unassigned=None):
+                       unassigned=None, workspace_cleanup=None):
     """Order: Job, desktop restoration, guard, trace, config snapshot.
 
     Each release is attempted even if a preceding independent release fails.
@@ -92,6 +92,8 @@ def cleanup_supervisor(kernel, job, backdrop, guard, trace, snapshot, restore,
             _message('[shutdown] supervisor cleanup warning:', exc)
             return False
 
+    if workspace_cleanup is not None:
+        attempt(workspace_cleanup, workspace_cleanup)
     if job:
         _message('[supervisor] closing worker Job Object; any remaining worker will be terminated')
         attempt(job, lambda: close_job(kernel, job))

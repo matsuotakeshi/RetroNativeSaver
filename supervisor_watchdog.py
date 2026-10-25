@@ -8,6 +8,8 @@ from runtime_policy import PREPARATION_PHASES, watchdog_timeout, progress_key
 
 
 def terminate_hung_worker(proc, kernel32, restart_exit_code):
+    if proc.poll() is not None:
+        return True
     try:
         process_handle = getattr(
             proc,
@@ -15,12 +17,14 @@ def terminate_hung_worker(proc, kernel32, restart_exit_code):
             None,
         )
         if process_handle:
-            kernel32.TerminateProcess(
+            accepted = kernel32.TerminateProcess(
                 c_void_p(int(process_handle)),
                 c_uint(
                     restart_exit_code
                 ),
             )
+            if not accepted:
+                raise OSError('TerminateProcess returned FALSE')
         else:
             proc.terminate()
     except Exception as exc:
@@ -31,8 +35,13 @@ def terminate_hung_worker(proc, kernel32, restart_exit_code):
         )
         try:
             proc.kill()
-        except Exception:
-            pass
+        except Exception as kill_exc:
+            if proc.poll() is None:
+                print(f'[watchdog] kill failed: {kill_exc}; closing session Job', flush=True)
+                return False
+    # A successful API call only requests termination. The monitor separately
+    # checks that the process actually exits, without blocking the window pump.
+    return True
 
 
 class WorkerWatchdog:
@@ -46,8 +55,16 @@ class WorkerWatchdog:
         self.watchdog_last_check = 0.0
         self.watchdog_triggered = False
         self.watchdog_snapshot = None
+        self.termination_requested_at = None
 
     def check(self, proc, now_watchdog, runtime_trace_mm):
+        if self.termination_requested_at is not None:
+            if proc.poll() is not None:
+                return None
+            if now_watchdog - self.termination_requested_at >= 5:
+                print('[watchdog] worker still alive after termination; closing session Job', flush=True)
+                return 1
+            return None
         if (
             runtime_trace_mm is not None
             and now_watchdog - self.watchdog_last_check
@@ -87,7 +104,7 @@ class WorkerWatchdog:
                                 f"{snapshot_now.get('rom', '')}",
                                 flush=True,
                             )
-                            if phase_now in PREPARATION_PHASES or phase_now == "SLOT_SCHEDULER":
+                            if phase_now in PREPARATION_PHASES or phase_now in {"SLOT_SCHEDULER", "CLOSE_EXIT_ENTER"}:
                                 print("[watchdog] frontend stalled; closing session without ROM penalty or restart loop", flush=True)
                                 return 1
 
@@ -97,7 +114,9 @@ class WorkerWatchdog:
                                 flush=True,
                             )
 
-                            self.terminate(proc)
+                            if self.terminate(proc) is False:
+                                return 1
+                            self.termination_requested_at = now_watchdog
 
                             # Avoid repeated termination attempts while
                             # Windows completes process teardown.

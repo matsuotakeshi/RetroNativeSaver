@@ -60,6 +60,10 @@ class SharedTests(unittest.TestCase):
     o._load_gl=load
     try:o._init_gl_functions();error=None
     except Exception as e:error=(type(e).__name__,str(e))
+    if compiled is CODES[1] and failure is None:
+     self.assertEqual(events[-1], (b'glBindBuffer', None, ctypes.c_uint, ctypes.c_uint))
+     self.assertEqual(o.glBindBuffer, 16)
+     events.pop();del o.glBindBuffer
     results.append((events,error,{k:v for k,v in vars(o).items() if k!='_load_gl'}))
    self.assertEqual(*results)
    self.assertEqual(len(results[0][0]),failure or 15)

@@ -59,7 +59,7 @@ class StateStoreCompatibilityTests(unittest.TestCase):
                     value=('ok',result)
                 except Exception as exc: value=('error',type(exc).__name__,str(exc))
             self.assertEqual(state,initial)
-            files=[(str(p.relative_to(root)),p.read_bytes() if p.is_file() else 'dir') for p in sorted(root.rglob('*'))]
+            files=[(str(p.relative_to(root)),p.read_bytes() if p.is_file() else 'dir') for p in sorted(root.rglob('*')) if p.suffix != '.lock']
             return value,log.getvalue().replace(str(root),'<root>'),files
 
     def compare(self,operation,**kwargs):

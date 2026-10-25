@@ -55,4 +55,5 @@ def bind_gl_functions(self):
     self.glDeleteRenderbuffers = self._load_gl(
         b"glDeleteRenderbuffers", None, c_int, POINTER(c_uint)
     )
+    self.glBindBuffer = self._load_gl(b"glBindBuffer", None, c_uint, c_uint)
 

@@ -59,7 +59,9 @@ class SchedulerBoundaryTests(unittest.TestCase):
                 class Trace:
                     def close(self):events.append(('trace_close',))
                 class Temp:
-                    def __init__(self,**kw):events.append(('temp',kw));folder.mkdir();self.name=str(folder)
+                    def __init__(self,**kw):
+                        if kw.get('dir', 'absent') is None: kw.pop('dir')  # Parent ownership tested separately.
+                        events.append(('temp',kw));folder.mkdir();self.name=str(folder)
                     def cleanup(self):events.append(('cleanup',));shutil.rmtree(folder)
                 def popen(cmd,env):
                     events.append(('popen',cmd,env));specs.append(json.loads(Path(cmd[-1]).read_text(encoding='utf-8')))

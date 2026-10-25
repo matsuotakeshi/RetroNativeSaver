@@ -130,6 +130,8 @@ class StartupCompatibilityTests(unittest.TestCase):
                 if isinstance(value, (list,tuple)): return [normalize(v) for v in value]
                 if isinstance(value, set): return sorted(value)
                 return value
+            # New cleanup-phase telemetry is checked independently; preserve the other startup events.
+            events = [e for e in events if not (e[0] == 'trace' and e[1][0] == 'START_CLOSE_ENTER')]
             return normalize((value,events,log.getvalue(),files,failed,usage,random.getstate()))
 
     def compare(self, **kwargs):

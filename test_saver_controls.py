@@ -249,6 +249,7 @@ class SaveTests(unittest.TestCase):
             self.assertTrue(watchdog)
         safety.record_runtime_failure=Mock(side_effect=record)
         with contextlib.redirect_stdout(io.StringIO()):
+            safety.persistent_rom_whitelist_path = self.white
             actions.record_failure_with_fresh_lists(safety,{'phase':'RUN_ENTER'},True)
         safety.record_runtime_failure.assert_called_once()
         self.assertTrue(safety.persistent_rom_blacklist_enabled)

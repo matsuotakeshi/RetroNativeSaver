@@ -37,6 +37,8 @@ class RomPolicyCompatibilityTests(unittest.TestCase):
         root=Path(__file__).parent
         self.old=load(root/'tests_fixtures/legacy_rom_policy_v070.py')
         self.new=load(root/'native_saver.py')
+        # Evidence arithmetic remains compatible; transactional merge has its own tests.
+        self.new['_record_persistent_rom_failure']=rom_state_store._record_failure_in_state
 
     def compare(self,name,*args):
         a=call(self.old,name,*args); b=call(self.new,name,*args)

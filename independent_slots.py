@@ -411,7 +411,8 @@ def run_scheduler(api, win, rects, systems, catalogs, cfg, favorites_path, title
         job = api._create_worker_job_object()
         if not job:
             raise RuntimeError('Independent mode requires a kill-on-close Job Object')
-        temp = tempfile.TemporaryDirectory(prefix='rns_scheduler_', ignore_cleanup_errors=True)
+        from worker_workspace import worker_temp_parent
+        temp = tempfile.TemporaryDirectory(prefix='rns_scheduler_', dir=worker_temp_parent(), ignore_cleanup_errors=True)
         folder = Path(temp.name)
         print(f"[independent] enabled slots={len(rects)} center={cfg.get('cycle_seconds', DEFAULT_CYCLE_SECONDS)} jitter={cfg.get('independent_jitter_seconds', 60)}", flush=True)
         win.begin_composite()

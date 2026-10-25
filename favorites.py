@@ -39,22 +39,43 @@ def load_favorites(path):
     return validate_favorites(json.loads(path.read_text(encoding='utf-8-sig')))
 
 
-def save_favorites(path, data):
+_ANY_REVISION = object()
+
+
+def load_favorites_snapshot(path):
     path = Path(path)
-    data = validate_favorites(data)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    # Replace only after a complete write; leave the existing file on failure.
-    temp_name = None
-    try:
-        with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8', dir=path.parent,
-                                         prefix=path.name + '.', suffix='.tmp', delete=False) as f:
-            temp_name = f.name
-            json.dump(data, f, ensure_ascii=False, indent=2)
-            f.write('\n')
-        os.replace(temp_name, path)
-    finally:
-        if temp_name and Path(temp_name).exists():
-            Path(temp_name).unlink()
+    raw = path.read_bytes() if path.exists() else None
+    return validate_favorites(json.loads(raw.decode('utf-8-sig')) if raw is not None else {}), raw
+
+
+def save_favorites(path, data, expected=_ANY_REVISION):
+    from file_transaction import file_locks
+    with file_locks(path):
+        path = Path(path)
+        data = validate_favorites(data)
+        original = path.read_bytes() if path.exists() else None
+        if expected is not _ANY_REVISION and original != expected:
+            raise RuntimeError(_tr('設定ファイルが別の操作で変更されています。画面を閉じて開き直してください。'))
+        path.parent.mkdir(parents=True, exist_ok=True)
+        # Replace only after a complete write; leave the existing file on failure.
+        temp_name = None
+        try:
+            with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8', dir=path.parent,
+                                             prefix=path.name + '.', suffix='.tmp', delete=False) as f:
+                temp_name = f.name
+                json.dump(data, f, ensure_ascii=False, indent=2)
+                f.write('\n')
+                f.flush()
+                os.fsync(f.fileno())
+            payload = Path(temp_name).read_bytes()
+            if (path.read_bytes() if path.exists() else None) != original:
+                raise RuntimeError(_tr('保存中に設定ファイルが変更されました。画面を開き直してください。'))
+            from file_transaction import replace_checked
+            replace_checked(temp_name, path, original)
+            return payload
+        finally:
+            if temp_name and Path(temp_name).exists():
+                Path(temp_name).unlink()
 
 
 def favorite_candidates(systems, catalogs, data, log=print):
@@ -119,7 +140,7 @@ def show_favorites_editor(app_dir, systems_dir, favorites_path):
     root.geometry('1160x670')
     root.minsize(950, 540)
     try:
-        data = load_favorites(favorites_path)
+        data, original = load_favorites_snapshot(favorites_path)
         systems = []
         for path in sorted(Path(systems_dir).glob('*.json')):
             system = json.loads(path.read_text(encoding='utf-8-sig'))
@@ -230,9 +251,9 @@ def show_favorites_editor(app_dir, systems_dir, favorites_path):
         refresh()
 
     def save():
-        nonlocal dirty
+        nonlocal dirty, original
         try:
-            save_favorites(favorites_path, {'enabled': enabled.get(), 'items': items})
+            original = save_favorites(favorites_path, {'enabled': enabled.get(), 'items': items}, expected=original)
         except Exception as exc:
             messagebox.showerror(_tr('保存できません'), str(exc), parent=root)
             return False

@@ -41,7 +41,7 @@ class Model:
             setattr(self.owner, 'glDelete' + suffix, self.deleter(suffix))
         for name in ('glBindTexture', 'glTexParameteri', 'glTexImage2D', 'glBindRenderbuffer',
                      'glRenderbufferStorage', 'glBindFramebuffer', 'glFramebufferTexture2D',
-                     'glFramebufferRenderbuffer'):
+                     'glFramebufferRenderbuffer', 'glBindBuffer'):
             setattr(self.owner, name, lambda *args: None)
         self.owner.glCheckFramebufferStatus = lambda target: 0 if self.event('fbo_status') else self.ns['GL_FRAMEBUFFER_COMPLETE']
 
@@ -184,6 +184,7 @@ class WglSafetyTests(unittest.TestCase):
 
     def test_shared_readback_exception_restores_core_context(self):
         model = Model(); model.owner.create(); model.owner.enable_shared_context()
+        model.glGetIntegerv = lambda key, pointer: setattr(pointer._obj, 'value', 12)
         model.glFinish = lambda: None
         model.glPixelStorei = lambda *args: None
         model.glReadBuffer = lambda *args: None
@@ -197,6 +198,7 @@ class WglSafetyTests(unittest.TestCase):
     def test_single_readback_exception_restores_both_bindings(self):
         model = Model(); model.owner.create()
         restored = []
+        model.glGetIntegerv = lambda key, pointer: setattr(pointer._obj, 'value', 12)
         model.glGetIntegerv = lambda key, pointer: setattr(pointer._obj, 'value', 12)
         model.glFinish = lambda: None
         model.glPixelStorei = lambda *args: None

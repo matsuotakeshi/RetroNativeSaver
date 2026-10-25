@@ -6,7 +6,7 @@ python initialize_config.py
 if errorlevel 1 exit /b 1
 
 echo ========================================
-echo Retro Native Saver v0.21.26 build
+echo Retro Native Saver v0.22 build
 echo ========================================
 
 if exist build rmdir /s /q build

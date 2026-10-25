@@ -132,7 +132,7 @@ def initial_retry_candidates(initial_system, initial_rom, systems, catalogs, fai
     return candidates, enabled_supported
 
 
-def normal_retry_candidate(preferred_system, enabled_supported, catalogs, failed_roms, cycle_group_usage, cfg):
+def normal_retry_candidate(preferred_system, enabled_supported, catalogs, failed_roms, cycle_group_usage, cfg, other_picks=None):
     if not enabled_supported:
         raise RuntimeError("No supported systems available for retry.")
 
@@ -160,6 +160,8 @@ def normal_retry_candidate(preferred_system, enabled_supported, catalogs, failed
                 cfg,
                 replacing_system=preferred_system,
             )
+            and (other_picks is None or sum(other['id'] == s['id'] for other, _ in other_picks)
+                 < int(s.get('max_concurrent', len(other_picks) + 1)))
         ]
         if not fallback_systems:
             return None

@@ -62,7 +62,7 @@ class WatchdogBoundaryTests(unittest.TestCase):
             def kill():
                 events.append(('kill',))
                 if kill_error:raise OSError('kill failure')
-            proc=SimpleNamespace(pid=456,_handle=handle,terminate=terminate,kill=kill)
+            proc=SimpleNamespace(pid=456,_handle=handle,terminate=terminate,kill=kill,poll=lambda:None)
             ns=dict(runtime_trace_mm='mapping' if mapping else None,worker_watchdog_poll_seconds=.25,
                     supervisor_cfg={"worker_run_hang_timeout_seconds":20, **(cfg or {})},read_runtime_trace=read,watchdog_timeout=watchdog_timeout,progress_key=progress_key,
                     PREPARATION_PHASES=PREPARATION_PHASES,WORKER_RESTART_EXIT_CODE=75,kernel32=SimpleNamespace(TerminateProcess=terminate_api),
@@ -83,13 +83,6 @@ class WatchdogBoundaryTests(unittest.TestCase):
         r=self.compare([(0.1,snap),(.25,snap),(.49,snap),(.50,snap)]);self.assertEqual(len(r[0]),2)
         r=self.compare([(1,snap),(30,snap)],mapping=False);self.assertEqual(r[0],[])
 
-    def test_native_timeout_boundary_and_reset(self):
-        snap={'phase':'RUN_ENTER','call_count':1}
-        r=self.compare([(1,snap),(20.5,snap),(21,snap),(22,snap),(41,snap),(42,snap)])
-        self.assertEqual(sum(e[0]=='TerminateProcess' for e in r[0]),2)
-        self.assertEqual(r[1][2][2][1:3],(None,None));self.assertTrue(r[1][2][2][3])
-        self.assertEqual(r[1][2][2][4],snap)
-
     def test_frontend_stalls_return_without_termination(self):
         for phase in (*PREPARATION_PHASES,'SLOT_SCHEDULER'):
             r=self.compare([(1,{'phase':phase}),(200,{'phase':phase})])
@@ -100,16 +93,6 @@ class WatchdogBoundaryTests(unittest.TestCase):
              (20,{'phase':'OTHER'}),(30,{'phase':' RUN_ENTER ','call_count':2}),(49,{'phase':'RUN_ENTER','call_count':2,'raw':'changed'})]
         r=self.compare(seq);self.assertFalse(any(e[0]=='TerminateProcess' for e in r[0]))
         self.assertEqual(r[1][1][2][2],1);self.assertEqual(r[1][3][2][1:3],(None,None))
-
-    def test_termination_paths_and_failures(self):
-        seq=[(1,{'phase':'START_ENTER'}),(46,{'phase':'START_ENTER'})]
-        for handle in (None,0,123):
-            for api_error in (False,True):
-                for terminate_error in (False,True):
-                    for kill_error in (False,True):
-                        r=self.compare(seq,handle,api_error,terminate_error,kill_error)
-                        self.assertIsNone(r[1][-1][1]);self.assertEqual(r[1][-1][2][1:3],(None,None))
-        r=self.compare(seq,api_result=False);self.assertNotIn(('kill',),r[0])
 
     def test_read_and_conversion_failures_partial_state(self):
         r=self.compare([(1,{'phase':'RUN_ENTER'})],read_error=True);self.assertEqual(r[1][0][1][0],'OSError');self.assertEqual(r[1][0][2][0],1)

@@ -3,6 +3,7 @@ __pycache__/
 *.spec
 *.log
 *.tmp
+*.json.lock
 FNT*.TMP
 /build/
 /dist/

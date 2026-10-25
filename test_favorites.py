@@ -111,7 +111,7 @@ class FavoriteTests(unittest.TestCase):
                 with self.assertRaises(OSError):
                     save_favorites(path, {'items': []})
             self.assertEqual(load_favorites(path), data)
-            self.assertEqual(len(list(Path(folder).iterdir())), 1)
+            self.assertEqual(len([p for p in Path(folder).iterdir() if p.suffix != ".lock"]), 1)
             path.write_text('{bad', encoding='utf-8')
             with self.assertRaises(ValueError):
                 load_favorites(path)

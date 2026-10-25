@@ -4,6 +4,7 @@ import math
 DEFAULT_CYCLE_SECONDS = 240
 DEFAULT_RUN_HANG_TIMEOUT = 15
 DEFAULT_START_HANG_TIMEOUT = 45
+DEFAULT_CLOSE_HANG_TIMEOUT = 45
 
 PREPARATION_PHASES = frozenset({'WORKER_STARTING', 'CONFIG_LOAD', 'TITLE_CATALOG', 'ROM_CATALOG'})
 NATIVE_CRASH_CODES = frozenset({0xC0000005, 0xC000001D, 0xC0000409, 0xC0000374})
@@ -20,6 +21,8 @@ def persistent_failure(snapshot, exit_code):
 
 
 def watchdog_timeout(phase, cfg):
+    if phase in {'CLOSE_ENTER', 'START_CLOSE_ENTER', 'CLOSE_EXIT_ENTER'}:
+        return max(1., float(cfg.get('worker_close_hang_timeout_seconds', DEFAULT_CLOSE_HANG_TIMEOUT)))
     if phase in PREPARATION_PHASES:
         return max(1., float(cfg.get('worker_prepare_hang_timeout_seconds', 120)))
     if phase == 'START_ENTER':
@@ -27,6 +30,20 @@ def watchdog_timeout(phase, cfg):
     if phase in {'RUN_ENTER', 'SLOT_SCHEDULER'}:
         return max(1., float(cfg.get('worker_run_hang_timeout_seconds', DEFAULT_RUN_HANG_TIMEOUT)))
     return None
+
+
+class RestartBudget:
+    """Bound consecutive abnormal exits; intentional cycle changes reset it."""
+    def __init__(self, limit=3):
+        self.limit = limit
+        self.failures = 0
+
+    def allow(self, code, snapshot, watchdog_triggered=False):
+        if code == 75 and (snapshot or {}).get('phase') == 'CYCLE_SWITCH' and not watchdog_triggered:
+            self.failures = 0
+            return True
+        self.failures += 1
+        return self.failures < self.limit
 
 
 class FramePacer:
