@@ -20,13 +20,14 @@ from supervisor_watchdog import WorkerWatchdog
 class SupervisorSessionTests(unittest.TestCase):
     def run_session(self, workers, *, snapshot=None, final_snapshot=None, backdrop_event=None,
                     independent=False, assigned=True, spawn_error=False,
-                    handoff=False, cleanup_error=False, launch_error=False):
+                    handoff=False, cleanup_error=False, launch_error=False,
+                    redraw=False, state_error=False, workspace_error=False, snapshot_error=False):
         events=[]
         cfg=dict(persistent_rom_blacklist_enabled=False,persistent_rom_whitelist_enabled=False,
                  session_system_crash_limit=1,worker_run_hang_timeout_seconds=1,
                  worker_prepare_hang_timeout_seconds=1,supervisor_watchdog_enabled=False,
                  independent_slots_enabled=independent)
-        if handoff:
+        if handoff or redraw:
             cfg.update(saver_controls_enabled=True,independent_slots_enabled=True)
         children=[]
         for code,polls in workers:
@@ -49,9 +50,27 @@ class SupervisorSessionTests(unittest.TestCase):
             return children[len(launches)-1]
         trace=Mock()
         trace.close.side_effect=lambda:events.append(('trace_close',))
-        frozen=Mock()
-        frozen.apply.side_effect=lambda env:env.update(SNAPSHOT='same')
-        frozen.close.side_effect=lambda:events.append(('snapshot_close',))
+        snapshots=[]
+        def make_snapshot(value):
+            if snapshot_error and snapshots:raise OSError('snapshot failure')
+            frozen=Mock()
+            frozen.apply.side_effect=lambda env:env.update(SNAPSHOT=json.dumps(value,sort_keys=True))
+            frozen.close.side_effect=lambda:events.append(('snapshot_close',))
+            snapshots.append(frozen)
+            return frozen
+        def choose(value,*args,**kwargs):
+            events.append(('draw',))
+            return dict(value,_single_system_session=None if events.count(('draw',))%2 else ['gb'])
+        def read_state(*args):
+            events.append(('read_request',args[1]))
+            if state_error:raise ValueError('wrong worker')
+            return {('gb','bad.rom')},{'A'},{'A':3}
+        def write_state(path,*state,**kwargs):events.append(('seed',state,kwargs))
+        workspace=Mock()
+        def workspace_cleanup(*a):
+            events.append(('workspace_cleanup',))
+            if workspace_error:raise OSError('descendants alive')
+        workspace.cleanup.side_effect=workspace_cleanup
         import retroarch_launch
         channel=Mock()
         channel.apply.side_effect=lambda env:events.append(('handoff_reset',))
@@ -95,8 +114,11 @@ class SupervisorSessionTests(unittest.TestCase):
         fn=next(n for n in tree.body if getattr(n,'name','')=='supervisor_main')
         exec(compile(ast.Module(body=[fn],type_ignores=[]),'<actual supervisor>','exec'),ns)
         with patch.object(launch_options,'load_supervisor_config',return_value=cfg), \
-             patch.object(config_snapshot,'ConfigSnapshot',return_value=frozen), \
-             patch('worker_workspace.WorkerWorkspace'), \
+             patch.object(config_snapshot,'ConfigSnapshot',side_effect=make_snapshot), \
+             patch('worker_workspace.WorkerWorkspace',return_value=workspace), \
+             (patch('single_system_mode.prepare_session',side_effect=choose) if redraw else contextlib.nullcontext()), \
+             patch('presentation_restart.read_state',side_effect=read_state), \
+             patch('presentation_restart.write_state',side_effect=write_state), \
              patch.object(retroarch_launch,'LaunchChannel',return_value=channel), \
              patch.object(retroarch_launch,'launch',side_effect=launch), \
              patch('process_cleanup.retain'), \
@@ -105,6 +127,44 @@ class SupervisorSessionTests(unittest.TestCase):
             try:result=ns['supervisor_main']();error=None
             except Exception as exc:result=None;error=exc
         return result,error,events,launches,children
+
+    def test_up_redraws_mode_after_cleanup_and_freezes_next_automatic_restart(self):
+        result,error,events,launches,_=self.run_session([(77,0),(75,0),(0,0)],redraw=True)
+        self.assertIsNone(error);self.assertEqual(result,0)
+        self.assertIsNone(json.loads(launches[0]['SNAPSHOT'])['_single_system_session'])
+        self.assertEqual(json.loads(launches[1]['SNAPSHOT'])['_single_system_session'],['gb'])
+        self.assertEqual(launches[1],launches[2])
+        self.assertEqual(events.count(('draw',)),2)
+        read=events.index(('read_request',100));second_draw=events.index(('draw',),read)
+        self.assertIn(('workspace_cleanup',),events[read:second_draw])
+        seeds=[e for e in events if e[0]=='seed']
+        self.assertEqual(len(seeds),2)
+        self.assertEqual(seeds[0][1],({('gb','bad.rom')},{'A'},{'A':3}))
+        self.assertEqual(seeds[0][2],{'pid':0})
+        self.assertNotIn(('handoff_read',100),events)
+
+    def test_repeated_up_redraws_do_not_exhaust_abnormal_restart_budget(self):
+        result,error,events,launches,_=self.run_session([(77,0)]*5+[(0,0)],redraw=True)
+        self.assertIsNone(error);self.assertEqual(result,0);self.assertEqual(len(launches),6)
+        self.assertEqual(events.count(('draw',)),6)
+
+    def test_bad_request_or_incomplete_cleanup_or_snapshot_failure_never_spawns_replacement(self):
+        for options in ({'state_error':True},{'workspace_error':True},{'snapshot_error':True}):
+            with self.subTest(options=options):
+                result,error,events,launches,_=self.run_session([(77,0),(0,0)],redraw=True,**options)
+                self.assertIsNotNone(error);self.assertEqual(len(launches),1)
+                self.assertIn(('snapshot_close',),events)
+
+    def test_up_signal_without_controls_is_not_a_restart(self):
+        result,error,events,launches,_=self.run_session([(77,0)])
+        self.assertIsNone(error);self.assertEqual(result,77);self.assertEqual(len(launches),1)
+        self.assertFalse(any(e[0]=='read_request' for e in events))
+
+    def test_exit_and_standby_take_priority_over_up_request(self):
+        for event in ('mouse','standby'):
+            result,error,events,launches,_=self.run_session([(77,1)],redraw=True,backdrop_event=event)
+            self.assertIsNone(error);self.assertEqual(len(launches),1)
+            self.assertFalse(any(e[0]=='read_request' for e in events))
 
     def test_retroarch_only_after_successful_full_cleanup(self):
         result,error,events,_,_=self.run_session([(0,0)],handoff=True)

@@ -267,11 +267,11 @@ class ActionTests(unittest.TestCase):
         self.catalogs={'mame':[Path('a.zip'),Path('b.zip'),Path('dir/A.ZIP')]}
         self.disposed=[]
     def dispose(self,index):self.disposed.append(index);self.slots[index]=None
-    def run_actions(self,dispose=None,cfg=None):
+    def run_actions(self,dispose=None,cfg=None,reselect=None):
         with contextlib.redirect_stdout(io.StringIO()):
             ui.process_actions(self.control,self.slots,cfg or {},self.catalogs,'favorites.json',
                 'black.json',self.state,self.white,lambda value,default:Path(default),self.banned,
-                dispose or self.dispose,self.next_try,100.)
+                dispose or self.dispose,self.next_try,100.,reselect=reselect)
 
     def test_delete_replaces_only_selected_after_save_with_ordinary_basename_exclusion(self):
         self.control.key(ui.RIGHT)  # ordinary slot; slot 0 now removes favorites
@@ -318,6 +318,20 @@ class ActionTests(unittest.TestCase):
         pick=select_slot(0,[system],catalogs,cfg,[],[(system,Path('a.zip'))],blocked,set())
         self.assertEqual(pick[1],Path('b.zip'))
         self.assertIsNone(select_slot(1,[system],catalogs,cfg,[pick],[],blocked,set()))
+
+    def test_up_requests_mode_redraw_only_after_disposal_and_discards_later_actions(self):
+        self.control.key(ui.UP);self.control.key(ui.DOWN)
+        def redraw():self.assertEqual(self.slots,[None,None])
+        request=Mock(side_effect=redraw)
+        self.run_actions(reselect=request)
+        request.assert_called_once_with();self.assertFalse(self.control.actions)
+        self.assertEqual(self.next_try,[9.,9.])
+
+    def test_failed_up_disposal_never_requests_redraw(self):
+        self.control.key(ui.UP);request=Mock()
+        with self.assertRaises(TimeoutError):
+            self.run_actions(dispose=Mock(side_effect=TimeoutError()),reselect=request)
+        request.assert_not_called()
 
     def test_up_disposes_ready_loading_and_empty_tiles_without_saving_or_banning(self):
         self.slots.extend([slot(12,ready=False),None])

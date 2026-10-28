@@ -18,12 +18,21 @@ class ParallelStartupTests(unittest.TestCase):
                 hwnd=123;fullscreen=True;should_close=False;exit_reason='test';power_idle=False;pumps=0
                 def pump(self):
                     self.pumps+=1
+                    if mode.startswith('reselect') and self.pumps==3:self.saver_controls.key(0x26)
                     if mode=='standby' and self.pumps==3:self.power_idle=True
-                    if self.pumps>=8:self.should_close=True
+                    if self.pumps>=(12 if mode in ('resize','resize_group') else 8):self.should_close=True
                 def present(self):pass
                 def begin_composite(self):pass
                 def _note_exit(self,*a):events.append(('user_exit',))
             win=Window()
+            if mode in ('resize','resize_group'):
+                class Layout:
+                    def take(self,now):
+                        count={3:6,8:2}.get(win.pumps)
+                        if count is not None:
+                            events.append(('layout',count))
+                            return [(i*20,0,20,20) for i in range(count)]
+                win.tile_layout=Layout()
             class Trace:
                 def __init__(self):self.number=len(traces);self.closed=False;traces.append(self)
                 def close(self):self.closed=True;events.append(('trace_close',self.number))
@@ -38,7 +47,10 @@ class ParallelStartupTests(unittest.TestCase):
                         if mode=='complete':self.code=scheduler.COMPLETE
                     return self.code
                 def kill(self):self.code=-1;events.append(('kill',self.pid))
-                def wait(self,timeout):events.append(('wait',self.pid));return self.code
+                def wait(self,timeout):
+                    events.append(('wait',self.pid))
+                    if mode=='reselect_cleanup_failure':raise TimeoutError('child still alive')
+                    return self.code
             def popen(cmd,env):
                 index=int(Path(cmd[-1]).stem)
                 if mode=='popen_error' and index==1:raise OSError('test spawn error')
@@ -66,7 +78,7 @@ class ParallelStartupTests(unittest.TestCase):
             def read(trace):
                 proc=procs[trace.number]
                 self.assertTrue((root/f'gate_{proc.index}').exists())
-                proc.ready=(mode in ('advance','mixed') and proc.index!=0)
+                proc.ready=(mode in ('advance','mixed') and proc.index!=0) or mode in ('resize','resize_group')
                 phase='SLOT_RUNNING' if proc.ready else 'WAIT_FRAME'
                 if mode=='user' and proc.index==0 and win.pumps>=3:phase='SLOT_USER_EXIT'
                 if mode=='complete' and proc.index==0 and win.pumps>=3:phase='SLOT_COMPLETE'
@@ -80,28 +92,63 @@ class ParallelStartupTests(unittest.TestCase):
                 systems.append(dict(id='light',name='Light',max_concurrent=4))
                 catalogs['light']=[Path(f'l{i}.rom') for i in range(8)]
             cfg={'persistent_rom_blacklist_enabled':False,'resource_groups':{'heavy_cd':{'max_weight':1}}}
+            if mode=='resize_group':cfg['_single_system_rendering']=True
+            if mode.startswith('reselect'):cfg.update(saver_controls_enabled=True,independent_slots_enabled=True)
             if system_timing is not None:cfg.update(cycle_seconds=180,independent_jitter_seconds=0)
             if limit is not None:cfg['independent_startup_parallelism']=limit
             api=SimpleNamespace(RUNTIME_TRACE_SIZE=4096,_create_worker_job_object=lambda:9,
                 _assign_worker_to_job=assign,kernel32=SimpleNamespace(CloseHandle=close_job),
-                write_runtime_trace=lambda *a,**k:None,read_runtime_trace=read)
+                write_runtime_trace=lambda *a,**k:events.append(('runtime',a)),read_runtime_trace=read,
+                resolve_app_relative_path=lambda value,default:root/default)
             original=scheduler.select_slot;rng=random.Random(110)
             def select(*a,**kw):return original(*a,**kw,rng=rng)
             error=None
+            import presentation_restart as restart
+            if mode.startswith('reselect'):
+                restart.write_state(root,{('a','bad.rom')},{'Other'},{'Other':2},pid=0)
             with patch.multiple(scheduler,
                 mmap=SimpleNamespace(mmap=lambda *a,**k:Trace()),
                 subprocess=SimpleNamespace(Popen=popen),
                 time=SimpleNamespace(monotonic=tick,monotonic_ns=lambda:int(tick()*1e9),sleep=lambda x:None),
                 select_slot=select,_prepare_slot_launch=prepare,
                 _load_scheduler_state=lambda *a:(root/'black.json',{}, {},catalogs),
-                _refresh_scheduler_favorites=lambda *a:(1,[(system,catalogs['a'][0])])),contextlib.redirect_stdout(io.StringIO()):
-                try:scheduler.run_scheduler(api,win,[(0,0,20,20)]*4,systems,catalogs,cfg,root/'favorites.json',{})
+                _refresh_scheduler_favorites=lambda *a:(1,[(a[3][0],catalogs['a'][0])])), \
+                patch('worker_workspace.worker_temp_parent',return_value=str(root) if mode.startswith('reselect') else None), \
+                (patch.object(restart,'write_state',side_effect=OSError('write failed')) if mode=='reselect_failure' else contextlib.nullcontext()),contextlib.redirect_stdout(io.StringIO()):
+                try:
+                    code=scheduler.run_scheduler(api,win,[(0,0,20,20)]*4,systems,catalogs,cfg,root/'favorites.json',{})
+                    events.append(('return',code))
+                    if code==restart.RESELECT:
+                        events.append(('safety',restart.read_state(root,scheduler.os.getpid())))
                 except Exception as exc:error=exc
             self.assertTrue(all(p.code is not None for p in procs))
-            self.assertTrue(all(t.closed for t in traces))
+            if mode!='reselect_cleanup_failure':self.assertTrue(all(t.closed for t in traces))
             self.assertEqual(sum(e[0]=='job_close' for e in events),1)
             self.assertTrue(all(e[2]<=scheduler.startup_parallelism(cfg) for e in events if e[0]=='spawn'))
             return starts,events,error
+
+    def test_up_cleans_loading_tiles_and_returns_request_without_refill(self):
+        starts,events,error=self.run_case(mode='reselect')
+        self.assertIsNone(error);self.assertEqual([i for _,i in starts],[0,1])
+        self.assertIn(('return',77),events)
+        self.assertEqual(events[-1],('safety',({('a','bad.rom')},{'Other'},{'Other':2})))
+        self.assertLess(events.index(('job_close',)),events.index(('return',77)))
+
+    def test_up_write_or_cleanup_failure_does_not_report_success(self):
+        for mode in ('reselect_failure','reselect_cleanup_failure'):
+            starts,events,error=self.run_case(mode=mode)
+            self.assertIsNotNone(error);self.assertNotIn(('return',77),events)
+            self.assertEqual([i for _,i in starts],[0,1])
+
+    def test_live_resize_keeps_existing_children_and_resource_caps(self):
+        for mode,expected in (('resize',4),('resize_group',6)):
+            starts,events,error=self.run_case(mode=mode)
+            self.assertIsNone(error)
+            self.assertEqual([i for _,i in starts],list(range(expected)))
+            shrink=events.index(('layout',2));closed=events.index(('job_close',))
+            early_kills=[e[1] for e in events[shrink:closed] if e[0]=='kill']
+            self.assertEqual(early_kills,list(reversed(range(102,100+expected))))
+            self.assertNotIn(100,early_kills);self.assertNotIn(101,early_kills)
 
     def test_default_two_waiting_children_and_serial_one(self):
         starts,_,error=self.run_case();self.assertIsNone(error)

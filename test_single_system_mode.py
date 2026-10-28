@@ -41,6 +41,21 @@ class SingleSystemModeTests(unittest.TestCase):
         return mode.prepare_session(self.cfg if cfg is None else cfg, self.root,
                                     self.args if args is None else args, launch, rng=self.rng, **kwargs)
 
+    def test_explicit_redraw_repeats_weighted_lottery_and_group_choice(self):
+        cfg=copy.deepcopy(self.cfg)
+        cfg['single_system_mode'].update(normal_weight=1,grouped_weight=3,groups=[['gb','gbc'],['megadrive']])
+        self.rng.random.side_effect=[.9,.1,.1,.9]
+        self.rng.choice.side_effect=lambda groups:groups[0] if self.rng.choice.call_count==1 else groups[-1]
+        states=[]
+        for _ in range(4):
+            cfg=self.choose(cfg,reuse=False);states.append(cfg[mode.SESSION_KEY])
+            before=self.rng.random.call_count
+            self.assertIs(self.choose(cfg,reuse=True),cfg)
+            self.assertEqual(self.rng.random.call_count,before)
+        self.assertEqual(states,[None,['gb','gbc'],['megadrive'],None])
+        self.assertEqual(cfg['single_system_mode']['normal_weight'],1)
+        self.assertEqual(cfg['single_system_mode']['grouped_weight'],3)
+
     def test_old_config_and_manual_commands_keep_normal_behavior_without_draw(self):
         old = dict(self.cfg);del old['single_system_mode']
         self.assertEqual(self.choose(old), old)

@@ -11,18 +11,20 @@ import independent_slots
 import launch_options
 import rom_catalog
 import screen_layout
+import tile_layout
 import single_system_mode as mode
 from fixed_rom_catalog import Catalogs
 import test_supervisor_session as supervisor_harness
 
 
 class PresentationRoutingTests(unittest.TestCase):
-    def run_main(self, sid, *, argv=('/s','--worker'), monitors=None):
+    def run_main(self, sid, *, argv=('/s','--worker'), monitors=None, config=None):
         root=Path(__file__).parent
         systems=[dict(id=s,name=s,enabled=True,max_concurrent=i+1) for i,s in enumerate(mode.SUPPORTED)]
         catalogs=Catalogs({s['id']:[Path(s['id']+'.rom')] for s in systems})
         cfg=dict(independent_slots_enabled=True,fullscreen=True,multi_monitor=True,
                  **{mode.SESSION_KEY:sid})
+        cfg.update(config or {})
         win=SimpleNamespace(virtual_left=0,virtual_top=0,create=lambda:True,
                             client_size=lambda:(800,600),close=Mock())
         ns=dict(__name__='routing_test',sys=SimpleNamespace(argv=['saver',*argv],modules={'routing_test':SimpleNamespace()}),
@@ -40,12 +42,44 @@ class PresentationRoutingTests(unittest.TestCase):
         fn=next(n for n in tree.body if getattr(n,'name','')=='main')
         exec(compile(ast.Module(body=[fn],type_ignores=[]),'<actual presentation routing>','exec'),ns)
         with patch.object(config_snapshot,'load_worker_config',return_value=cfg), \
+             patch.object(tile_layout,'refresh_saved_rows',return_value=cfg), \
              patch.object(rom_catalog,'build_catalogs',return_value=catalogs), \
              patch.object(independent_slots,'run_scheduler',return_value=0) as scheduler:
             error=None
             try:result=ns['main']()
             except Exception as exc:result=None;error=exc
         return result,error,scheduler,win,systems,catalogs
+
+    def test_explicit_rows_apply_to_normal_and_grouped_without_changing_group(self):
+        for group in (None, ['gb','gbc']):
+            for rows,count in ((1,2),(2,18),(3,36),(4,64)):
+                result,error,scheduler,win,original,_=self.run_main(group,config={'tile_rows':rows})
+                self.assertIsNone(error)
+                self.assertEqual(len(scheduler.call_args.args[2]),count)
+                if group:
+                    self.assertEqual([s['id'] for s in scheduler.call_args.args[3]],group)
+                    self.assertTrue(all(s['max_concurrent']==count for s in scheduler.call_args.args[3]))
+                else:
+                    self.assertEqual(scheduler.call_args.args[3],original)
+                self.assertIsInstance(win.tile_layout,tile_layout.Controller)
+
+    def test_fbneo_new_grid_remains_within_32_tiles(self):
+        _,error,scheduler,_,_,_=self.run_main(['fbneo'],config={'tile_rows':4})
+        self.assertIsNone(error)
+        self.assertEqual(len(scheduler.call_args.args[2]),18)
+        self.assertEqual(scheduler.call_args.args[3][0]['max_concurrent'],18)
+
+    def test_explicit_small_grid_keeps_group_on_more_than_two_displays(self):
+        _,error,scheduler,_,_,_=self.run_main('gb',monitors=[(0,0,1920,1080)]*3,config={'tile_rows':1})
+        self.assertIsNone(error)
+        self.assertEqual(len(scheduler.call_args.args[2]),3)
+        self.assertEqual([s['id'] for s in scheduler.call_args.args[3]],['gb'])
+
+    def test_disabled_page_keys_do_not_disable_configured_layout(self):
+        _,error,scheduler,win,_,_=self.run_main(None,config={'tile_rows':1,'tile_resize_keys_enabled':False})
+        self.assertIsNone(error)
+        self.assertEqual(len(scheduler.call_args.args[2]),2)
+        self.assertFalse(hasattr(win,'tile_layout'))
 
     def test_actual_main_routes_64_tiles_only_to_chosen_machine(self):
         result,error,scheduler,win,original,catalogs=self.run_main('gb')

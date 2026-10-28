@@ -2040,6 +2040,9 @@ class GDIWindow(GDIDrawingSurface):
             if msg == WM_POWERBROADCAST:
                 return self._handle_power_message(hwnd, wparam, lparam)
         if not self.preview_mode and not self.should_close and not self.power_idle:
+            from tile_layout import handle_keys
+            if handle_keys(getattr(self, 'tile_layout', None), msg, wparam, lparam):
+                return 0
             from saver_controls import handle_message
             if handle_message(getattr(self, 'saver_controls', None), msg, wparam, lparam):
                 return 0
@@ -3228,6 +3231,9 @@ def main():
         print(f"[config] cannot start saver: {args.config}: {exc}", flush=True)
         return 2
     systems_dir = APP_DIR / cfg.get("systems_dir", "systems")
+    from tile_layout import refresh_saved_rows
+    if worker_mode:
+        cfg = refresh_saved_rows(cfg, args.config)
     configure_ui_language(cfg)
     favorites_path = resolve_app_relative_path(cfg.get("favorites_file"), "favorites.json")
     if args.favorites:
@@ -3298,6 +3304,7 @@ def main():
     if startup.measure("worker_window_create", win.create) is False:
         return 0
 
+    layout_group = single_system
     if fullscreen and bool(cfg.get("multi_monitor", True)):
         monitor_rects = get_monitor_rects()
         slot_rects = monitor_slots(monitor_rects, win.virtual_left, win.virtual_top,
@@ -3327,6 +3334,23 @@ def main():
             )
         kind = "preview" if preview_mode else "windowed"
         print(f"[display] {kind} slots={len(slot_rects)}")
+
+    layout_control = None
+    if fullscreen and not preview_mode and args.slots is None:
+        from tile_layout import configured_rows, plan, Controller, MAX_TILES, resize_keys_enabled
+        from single_system_mode import tile_limit
+        layout_monitors = monitor_rects if cfg.get('multi_monitor', True) else [(0, 0, *win.client_size())]
+        layout_origin = (win.virtual_left, win.virtual_top) if cfg.get('multi_monitor', True) else (0, 0)
+        if configured_rows(cfg):
+            single_system = layout_group  # Explicit grids need not fit the legacy dense layout.
+        layout_limit = tile_limit(single_system) if single_system is not None else MAX_TILES
+        if configured_rows(cfg):
+            _, slot_rects, grids = plan(layout_monitors, layout_origin, configured_rows(cfg),
+                                       int(cfg.get('gap_pixels', 0)), layout_limit)
+            print(f'[layout] configured grids={grids} tiles={len(slot_rects)}', flush=True)
+        if resize_keys_enabled(cfg) and len(slot_rects) <= MAX_TILES:
+            layout_control = Controller(cfg, args.config, layout_monitors, layout_origin, slot_rects, layout_limit)
+            win.tile_layout = layout_control
 
     slot_count = len(slot_rects)
     startup.point("layout", slots=slot_count, independent=bool(cfg.get("independent_slots_enabled", False) and not preview_mode), rects=slot_rects)
@@ -3365,6 +3389,7 @@ def main():
     try:
         while not win.should_close:
             cycle_number += 1
+            layout_changed = False
             print(f"[cycle] === CYCLE {cycle_number} ===")
 
             write_runtime_trace(
@@ -3467,6 +3492,14 @@ def main():
                             )
                             hard_exit_process(0)
                         break
+
+                    replacement = layout_control.take(time.monotonic()) if layout_control is not None else None
+                    if replacement is not None:
+                        slot_rects, slot_count = replacement, len(replacement)
+                        layout_changed = True
+                        if worker_mode and cycle_requires_process_recycle:
+                            hard_exit_process(WORKER_RESTART_EXIT_CODE)
+                        break  # Existing finally owns safe core release before refill.
 
                     render_loop_count += 1
 
@@ -3725,7 +3758,7 @@ def main():
 
                 shutil.rmtree(cycle_dir, ignore_errors=True)
 
-            if not cycle_enabled:
+            if not cycle_enabled and not layout_changed:
                 break
 
         return 0
@@ -3907,6 +3940,8 @@ def supervisor_main():
     from supervisor_watchdog import WorkerWatchdog, terminate_hung_worker
     from runtime_policy import RestartBudget
     restart_budget = RestartBudget()
+    from presentation_restart import RESELECT, read_state as read_presentation_state, write_state as write_presentation_state
+    presentation_state = None
     safety = SupervisorSafety(supervisor_cfg, resolve_app_relative_path)
     startup.measure("supervisor_safety", safety.load)
 
@@ -3929,6 +3964,8 @@ def supervisor_main():
         )
         child_env = os.environ.copy()
         workspace.apply(child_env)
+        if presentation_state is not None:
+            write_presentation_state(workspace.path, *presentation_state, pid=0)
         child_env['RNS_SLOT_SESSION_ID'] = safety.persistent_session_id
         config_snapshot.apply(child_env)
         if launch_channel is not None:
@@ -4009,6 +4046,11 @@ def supervisor_main():
         from saver_controls import enabled as controls_enabled, ForwardKeys, window_for_process
         if backdrop is not None and controls_enabled(supervisor_cfg):
             backdrop.saver_controls = ForwardKeys(user32,
+                lambda: window_for_process(user32, proc.pid if proc is not None and proc.poll() is None else None))
+        from tile_layout import resize_keys_enabled, RowKeyForward
+        if (backdrop is not None and resize_keys_enabled(supervisor_cfg)
+                and parse_main_args(remaining, APP_DIR).slots is None):
+            backdrop.tile_layout = RowKeyForward(user32,
                 lambda: window_for_process(user32, proc.pid if proc is not None and proc.poll() is None else None))
 
         if backdrop is not None and supervisor_cfg.get("supervisor_watchdog_enabled", True):
@@ -4168,6 +4210,22 @@ def supervisor_main():
                         f"[supervisor] backdrop repaint warning: {exc}",
                         flush=True,
                     )
+
+            if code == RESELECT and not watchdog.watchdog_triggered and controls_enabled(supervisor_cfg):
+                # Read only the owned worker's completed request, then verify all
+                # descendants have exited before replacing the frozen mode.
+                presentation_state = read_presentation_state(workspace.path, proc.pid)
+                finish_worker_files()
+                next_cfg = prepare_session(supervisor_cfg, APP_DIR,
+                                           parse_main_args(remaining, APP_DIR), launch_mode)
+                previous_snapshot = config_snapshot
+                config_snapshot = ConfigSnapshot(next_cfg)
+                from process_cleanup import close_trace
+                close_trace(previous_snapshot)
+                supervisor_cfg = next_cfg
+                restart_budget = RestartBudget()
+                print('[presentation] Up key -> redraw mode and group', flush=True)
+                continue
 
             if code == WORKER_RESTART_EXIT_CODE or unsigned_code in native_crash_codes:
                 if not restart_budget.allow(code, snapshot, watchdog.watchdog_triggered):

@@ -2,7 +2,7 @@
 
 # RetroNativeSaver
 
-A Windows screensaver that displays multiple games in a tiled layout. Each tile runs a libretro core in its own child process. Grouped mode supports **up to 64 simultaneous game displays across multiple monitors**. Current version: **v0.22**.
+A Windows screensaver that displays multiple games in a tiled layout. Each tile runs a libretro core in its own child process. Grouped mode supports **up to 64 simultaneous game displays across multiple monitors**. Current version: **v0.22.3**.
 
 The project is licensed under **GNU GPL v3 (GPL-3.0-only)**. Third-party code, including X1/libretro components, retains its [own licenses](THIRD_PARTY_NOTICES.md).
 
@@ -45,7 +45,7 @@ Configuration examples are available in `systems.example/`. Inclusion in this li
 
 Each tile has an independent child process that loads a libretro core and a ROM, runs the game, and draws its frames in that tile. A 64-tile layout uses 64 game processes. The scheduler handles ROM selection, startup, monitoring, and replacement. It limits concurrent initialization and displays each tile as it becomes ready.
 
-At startup, grouped mode randomly selects one group, such as Mega Drive + Mega-CD or GB + GBC + GBA, and keeps that group for the session. Each tile selects its own ROM, filling the screens with games from the same group, each progressing independently. See "Grouped mode" below for the available groups and the selection ratio between normal and grouped modes.
+At startup, grouped mode randomly selects one group, such as Mega Drive + Mega-CD or GB + GBC + GBA, and keeps that group until an explicit Up-key redraw. Each tile selects its own ROM, filling the screens with games from the same group, each progressing independently. See "Grouped mode" below for the available groups and the selection ratio between normal and grouped modes.
 
 To reduce rendering overhead, grouped mode limits each tile's display updates to 25 fps by default. Emulation runs at the rate specified by the core, with display updates scheduled separately. Actual performance and CPU and memory requirements depend on the systems, ROMs, and PC hardware.
 
@@ -69,7 +69,7 @@ The default configuration enables `independent_slots_enabled`, giving each tile 
 
 Each tile's duration is drawn anew around `cycle_seconds`, with a random variation of up to `independent_jitter_seconds` in either direction. The shared settings in the sample configuration are **150 seconds ±15 seconds (135–165 seconds)**. Setting the same keys in `systems/<system-id>.json` overrides the shared values for that system, so systems that take longer to start can stay on screen longer.
 
-Timing begins when the first video frame is received from each core. Differences in startup times and durations spread out tile replacements. Adjust `fade_duration_ms` to change the fade duration. To replace games immediately, press Up for all tiles or Down for the favorites tile.
+Timing begins when the first video frame is received from each core. Differences in startup times and durations spread out tile replacements. Adjust `fade_duration_ms` to change the fade duration. To replace games immediately, press Up to redraw the mode and group and replace all tiles, or Down to replace only the favorites tile.
 
 ## Requirements
 
@@ -115,10 +115,11 @@ For PC-98, X1, X68000 and FM-7 with `disk_boot_mode: "computer_two_drives"`, `Di
 | Left / Right | Select a tile. The selection indicator disappears after a period without selection input |
 | Insert | Add the selected game to favorites |
 | Delete | Add a game in a normal tile to the blacklist, or remove a game in the favorites tile from favorites. Replace that tile |
-| Up | Replace the ROMs in all tiles |
+| Up | Redraw normal/grouped mode and the group, then replace all tiles |
 | Down | Replace only the favorites tile |
 | Enter | Exit the screensaver and launch the selected game in RetroArch |
-| Mouse / touch / other exit keys | Exit the screensaver |
+| PageUp / PageDown | Increase / decrease tile rows on all displays and save the setting |
+| Mouse movement / wheel / buttons / touch / other exit keys | Exit the screensaver |
 
 If Enter is used from a separate screensaver desktop, the launcher looks up the normal Windows desktop on a dedicated thread. It preserves the saver process cleanup and launches RetroArch outside the saver Job. It does not switch desktops or unlock Windows; a locked or authentication-required desktop still prevents this fallback.
 
@@ -129,6 +130,12 @@ On-screen labels display `System / Game` on one line at the upper left of each t
 Scrolling is enabled by default, including when updating an existing configuration. The `overlay` settings `scroll_speed` (pixels/second, default 24), `scroll_pause_seconds` (pause at the left edge, default 2) and `scroll_gap` (minimum pixels between repeats, default 48) control its motion. Short labels also scroll. Set `scroll_speed` to `0` for a stationary single line, or `scroll_enabled` to `false` to restore the two-line display with `game_font_size` and `line_gap`. Keyboard selection/help messages remain stationary. Settings, saves, favorites and ROM selection are otherwise unchanged.
 
 ## Settings dialog
+
+**General → Tile rows** controls both normal and grouped fullscreen layouts. `tile_rows: 0` (the default, including when absent) retains the previous automatic layouts until PageUp or PageDown is used. `1` means one fullscreen tile per display. From `2` upward, each display's width/height ratio determines its columns, producing approximately square cells while the game keeps its own aspect ratio. For example, four rows give 7×4 tiles at 1920×1080 and 9×4 at 2560×1080.
+
+Cells are at least 270 physical pixels high (the existing 1080-pixel, four-row grid), unless the entire display is smaller. Requested rows are reduced as necessary for display resolution and the 64-tile total limit (32 for the FBNeo-only group). The old `max_slots_per_monitor` option applies only to the legacy normal layout; machine concurrency and resource-weight limits still apply to the new normal layout. Some cells can remain empty when those limits prevent additional games.
+
+With `tile_resize_keys_enabled: true` (default), PageUp increases rows and PageDown decreases rows on all displays together. Each press changes one row; held-key auto-repeat is ignored. Rapid presses are combined for saving, then only `tile_rows` is merged into the latest JSON with backup and atomic replacement. A save failure keeps the current layout and is reported in the optional log. With asynchronous tiles, surviving games continue, excess processes are safely stopped, and added cells start normally. Synchronous mode starts a new cycle using its existing safe cleanup/recycle path. Preview, windowed tests, and explicit `--slots` commands keep their original layout and wheel-to-exit behavior. The mouse wheel always exits the saver. Setting `tile_resize_keys_enabled: false` makes PageUp/PageDown exit too. The old v0.22.1 `tile_wheel_enabled` value is only a fallback for the new enable/disable setting; it never assigns the wheel.
 
 Open **Settings** in the Windows screensaver dialog, use RandomSaver's configuration command, or run `configure_saver.bat`. The EXE/SCR accepts `/c`, `/c:HWND`, or `/c HWND`; an optional `--config <path>` selects another existing configuration file.
 
@@ -157,7 +164,7 @@ All edited documents are validated and checked for external changes before writi
 
 ## Grouped mode
 
-The default selection ratio is 50% normal mode / 50% grouped mode. Adjust the ratio using `single_system_mode.normal_weight` and `grouped_weight`. One group is selected at startup, and ROM replacements stay within that group for the session.
+The default selection ratio is 50% normal mode / 50% grouped mode. Adjust the ratio using `single_system_mode.normal_weight` and `grouped_weight`. One group is selected at startup. Automatic ROM replacements stay within that group. Pressing Up repeats the mode lottery using the configured ratio and, if grouped mode wins, selects a group again. The same mode/group may be drawn again. Saved tile rows, favorites, resource limits, and current-session failure exclusions are retained. Explicit diagnostic commands (`--presentation`, `--system`, `--slots`, windowed mode) keep their restrictions; standalone `--worker` retains ROM-only replacement.
 
 ```json
 [

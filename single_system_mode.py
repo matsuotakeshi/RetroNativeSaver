@@ -1,7 +1,7 @@
 """Optional dense presentation; reuse the normal per-tile scheduler and safety.
 
 The supervisor freezes the presentation/group members in its config snapshot.
-Worker restarts cannot redraw the lottery. System settings remain independently
+Automatic worker restarts cannot redraw the lottery; an explicit Up request can. System settings remain independently
 editable, and the chosen system is copied before adjusting tile capacity.
 """
 import math

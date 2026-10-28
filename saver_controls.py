@@ -162,7 +162,7 @@ class TileControls(ForwardKeys):
         label = {ADDED:'お気に入り登録済み', EXISTS:'お気に入り登録済み',
                  BLOCKED:'ブラックリスト登録済み', REMOVED:'お気に入り解除済み',
                  ERROR:'保存失敗：ログを確認', LAUNCH_ERROR:'RetroArch起動準備失敗：ログを確認'}.get(status,
-                 f'←→ 選択 / Enter RetroArchで起動\n↑ 全枠 / ↓ お気に入り入替 / Del {delete_label} / Ins 登録')
+                 f'←→ 選択 / Enter RetroArchで起動\n↑ モード再抽選 / ↓ お気に入り入替 / Del {delete_label} / Ins 登録')
         top, _, bottom = label.partition('\n')
         color = '#FF4040' if status in (ERROR, LAUNCH_ERROR) else '#FFD700'
         win.draw_overlay(top if bottom else '', bottom or top, 0, max(0,height-56), width, 56,
@@ -175,7 +175,7 @@ class TileControls(ForwardKeys):
 
 
 def process_actions(control, slots, cfg, catalogs, favorites_path, state_path, state, white,
-                    resolve_path, banned, dispose, next_try, now, favorite_catalogs=None, launch_request=None):
+                    resolve_path, banned, dispose, next_try, now, favorite_catalogs=None, launch_request=None, reselect=None):
     from saver_actions import blacklist_rom, add_favorite, remove_favorite
     while control.actions:
         key, index, target = control.actions.popleft()
@@ -188,6 +188,10 @@ def process_actions(control, slots, cfg, catalogs, favorites_path, state_path, s
             # children still loading. Any cleanup failure aborts before refill.
             for slot_index in range(len(slots)):
                 dispose(slot_index)
+            if reselect is not None:
+                reselect()
+                control.actions.clear()
+                return
             next_try[:] = [now] * len(next_try)
             # The scheduler refills with its normal favorite/resource policy.
             # Session quarantine, saved lists and failure evidence are untouched.

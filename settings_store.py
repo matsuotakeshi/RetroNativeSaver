@@ -68,11 +68,13 @@ GENERAL = (
     Field(('ui_language',), 'Language / 言語', 'auto', 'language'),
     Field(('retroarch_path',), 'RetroArchのEXE（空欄で自動検出）', '', 'path'),
     Field(('multi_monitor',), '複数モニターに表示する', True, 'bool'),
+    Field(('tile_rows',), '縦タイル数（0:従来の自動配置、1:各画面に1枠）', 0, 'int', 0, 64),
+    Field(('tile_resize_keys_enabled',), 'PageUp／PageDownで全画面の縦タイル数を変更・保存する', True, 'bool'),
     Field(('independent_slots_enabled',), '枠ごとに非同期で入れ替える', False, 'bool'),
     Field(('cycle_seconds',), '共通の表示時間（秒）', 240, minimum=1),
     Field(('independent_jitter_seconds',), '表示時間のランダム幅（±秒）', 60),
     Field(('independent_max_fps',), '非同期表示の上限 FPS', 30, minimum=1),
-    Field(('max_slots_per_monitor',), '通常表示の枠数上限／モニター', 16, 'int', 1),
+    Field(('max_slots_per_monitor',), '従来の通常自動配置の枠数上限／モニター', 16, 'int', 1),
     Field(('fade_enabled',), 'フェードする', True, 'bool'),
     Field(('fade_duration_ms',), 'フェード時間（ミリ秒）', 800, 'int'),
     Field(('mouse_exit_threshold',), 'マウスで終了する移動量（px）', 12, 'int'),
@@ -105,6 +107,9 @@ DISABLED = ('single_system_mode', 'disabled_systems')
 
 
 def get_value(config, field):
+    if field.path == ('tile_resize_keys_enabled',) and 'tile_resize_keys_enabled' not in config:
+        from tile_layout import resize_keys_enabled
+        return resize_keys_enabled(config)
     value = config
     for key in field.path:
         if not isinstance(value, dict):

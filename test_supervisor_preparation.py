@@ -106,7 +106,7 @@ class SupervisorPreparationTests(unittest.TestCase):
         results=[]
         for old in (True,False):
             environ={'UNCHANGED':'value','TRACE':'inherited'}
-            ns=dict(workspace=SimpleNamespace(apply=lambda env:None),launch_channel=None,config_snapshot=SimpleNamespace(apply=lambda env:None),sys=SimpleNamespace(executable='python.exe',frozen=frozen),raw_args=['/s','--config','日本語.json'],
+            ns=dict(presentation_state=None,workspace=SimpleNamespace(apply=lambda env:None),launch_channel=None,config_snapshot=SimpleNamespace(apply=lambda env:None),sys=SimpleNamespace(executable='python.exe',frozen=frozen),raw_args=['/s','--config','日本語.json'],
                     os=SimpleNamespace(environ=environ,getpid=lambda:456),Path=Path,__file__=str(ROOT/'native_saver.py'),json=json,
                     persistent_session_id='session',runtime_trace_tag=trace,RUNTIME_TRACE_ENV='TRACE',SESSION_QUARANTINE_ENV='QUARANTINE',
                     SESSION_DISABLED_SYSTEMS_ENV='DISABLED',session_quarantine=copy.deepcopy(quarantine),session_disabled_systems=set(disabled))

@@ -132,6 +132,11 @@ def run_slot(api, spec_path):
     if cfg.get('_single_system_rendering', False):
         win.stretch_blt_mode = api.COLORONCOLOR
     controls = None
+    geometry = None
+    if spec.get('layout_tag'):
+        from tile_layout import Geometry, RowKeyForward
+        geometry = Geometry(spec['layout_tag'])
+        win.tile_layout = RowKeyForward(api.user32, lambda: spec['parent'])
 
     if spec.get('selection_tag'):
         from saver_controls import TileControls
@@ -155,6 +160,9 @@ def run_slot(api, spec_path):
                 print(f"[independent] slot={index+1} exit reason={win.exit_reason}", flush=True)
                 api.write_runtime_trace('SLOT_USER_EXIT', slot=index + 1)
                 api.hard_exit_process(0)
+            if geometry is not None:
+                from tile_layout import resize_tile
+                resize_tile(api, win, geometry, index)
             calls += 1
             api.write_runtime_trace('RUN_ENTER', slot=index + 1, system=system['name'],
                                     rom=rom.name, call_count=calls)
@@ -230,6 +238,8 @@ def _prepare_slot_launch(api, win, rects, cfg, title_maps, folder, index, pick, 
     controls = getattr(win, 'saver_controls', None)
     if getattr(controls, 'tag', None):
         spec['selection_tag'] = controls.tag
+    if getattr(win, 'tile_geometry', None) is not None:
+        spec['layout_tag'] = win.tile_geometry.tag
     spec_path.write_text(json.dumps(spec, ensure_ascii=False), encoding='utf-8')
     env = os.environ.copy()
     env[api.RUNTIME_TRACE_ENV] = tag
@@ -260,7 +270,18 @@ def run_scheduler(api, win, rects, systems, catalogs, cfg, favorites_path, title
     slots = [None] * len(rects)
     startup_limit = startup_parallelism(cfg)
     startup.point('scheduler_startup_policy', parallelism=startup_limit)
-    banned, suspended, failures = set(), set(), {}
+    from presentation_restart import RESELECT, read_state, write_state
+    from worker_workspace import worker_temp_parent
+    presentation_workspace = worker_temp_parent()
+    banned, suspended, failures = (read_state(presentation_workspace, 0)
+        if presentation_workspace else (set(), set(), {}))
+    reselect_requested = False
+
+    def request_reselection():
+        nonlocal reselect_requested
+        write_state(presentation_workspace, banned, suspended, failures, pid=os.getpid())
+        reselect_requested = True
+
     next_try = [0.] * len(rects)
     favorite_stamp, favorites = object(), []
     favorite_catalogs = catalogs  # already filtered for actual session failures
@@ -268,6 +289,8 @@ def run_scheduler(api, win, rects, systems, catalogs, cfg, favorites_path, title
     session = os.environ.get('RNS_SLOT_SESSION_ID', f'independent-{os.getpid()}')
     job, temp, folder = None, None, None
     controls = None
+    geometry = None
+    layout_control = vars(win).get('tile_layout')
 
     def launch_request(system, rom):
         from retroarch_launch import request_launch
@@ -408,6 +431,11 @@ def run_scheduler(api, win, rects, systems, catalogs, cfg, favorites_path, title
         if controls_enabled(cfg):
             controls = SchedulerControls(slots)
             win.saver_controls = controls
+        if layout_control is not None:
+            from tile_layout import Geometry
+            geometry = Geometry()
+            geometry.publish(rects)
+            win.tile_geometry = geometry
         job = api._create_worker_job_object()
         if not job:
             raise RuntimeError('Independent mode requires a kill-on-close Job Object')
@@ -439,12 +467,31 @@ def run_scheduler(api, win, rects, systems, catalogs, cfg, favorites_path, title
             now = time.monotonic()
             # This worker is only the scheduler; no native core can block its event pump.
             api.write_runtime_trace('SLOT_SCHEDULER', call_count=int(now * 1000))
+            replacement = layout_control.take(now) if layout_control is not None else None
+            if replacement is not None:
+                from tile_layout import resize_slots
+                resize_slots(slots, next_try, rects, replacement, dispose, now)
+                if cfg.get('_single_system_rendering', False):
+                    from single_system_mode import scheduler_inputs
+                    systems, catalogs = scheduler_inputs(systems, catalogs, len(rects))
+                    favorite_stamp = object()
+                if controls is not None:
+                    controls.actions.clear()
+                    controls.index, controls.until = None, 0.
+                    controls.publish()
+                geometry.publish(rects)
+                win.begin_composite()
+                win.present()
             if controls is not None:
                 process_actions(controls, slots, cfg, catalogs, favorites_path, state_path, state, white,
                                 api.resolve_app_relative_path, banned, dispose, next_try, now,
-                                favorite_catalogs=favorite_catalogs, launch_request=launch_request)
+                                favorite_catalogs=favorite_catalogs, launch_request=launch_request,
+                                reselect=request_reselection if presentation_workspace else None)
                 if win.should_close:
                     break
+                if reselect_requested:
+                    api.write_runtime_trace('PRESENTATION_SWITCH')
+                    return RESELECT  # finally must reclaim children before the parent redraws.
             favorite_stamp, favorites = _refresh_scheduler_favorites(
                 favorites_path, favorite_stamp, favorites, systems, favorite_catalogs)
 
@@ -465,6 +512,10 @@ def run_scheduler(api, win, rects, systems, catalogs, cfg, favorites_path, title
             try:
                 cleanup_scheduler(api, job, slots, dispose, temp)
             finally:
-                if controls is not None:
-                    controls.close()
+                try:
+                    if controls is not None:
+                        controls.close()
+                finally:
+                    if geometry is not None:
+                        geometry.close()
 

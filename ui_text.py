@@ -59,6 +59,10 @@ def tr(message, **values):
 
 
 ENGLISH = {
+    '縦タイル数（0:従来の自動配置、1:各画面に1枠）': 'Tile rows (0: legacy automatic layout, 1: one tile per display)',
+    'PageUp／PageDownで全画面の縦タイル数を変更・保存する': 'Change and save tile rows on all displays with PageUp / PageDown',
+    '従来の通常自動配置の枠数上限／モニター': 'Legacy normal layout: maximum tiles per monitor',
+    'タイル数は全画面表示に適用します。横の列数は画面比率から自動計算します。\n最小高さ270px、全画面合計64枠（FBNeoグループは32枠）以内に調整します。\nPageUp（ロールアップ）で段数を増やし、PageDown（ロールダウン）で減らして保存します。1段は各画面に1枠です。': 'Tile rows apply in fullscreen. Columns follow each display aspect ratio.\nMinimum cell height: 270 px. Total limit: 64 tiles (32 for the FBNeo group).\nPageUp adds rows; PageDown removes rows and saves to JSON. One row means one tile per display.',
     "Language / 言語": "Language / 言語",
     "言語を一覧から選択してください。": "Select a language from the list.",
     "言語の変更は「適用／OK」で保存後、画面を開き直すと反映されます。": "Save the language with Apply / OK, then reopen the window to use it.",

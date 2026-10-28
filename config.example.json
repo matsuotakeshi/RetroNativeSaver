@@ -11,6 +11,8 @@
   "mouse_exit_threshold": 12,
   "startup_retry_attempts": 5,
   "multi_monitor": true,
+  "tile_rows": 0,
+  "tile_resize_keys_enabled": true,
   "cycle_enabled": true,
   "cycle_seconds": 150,
   "gap_pixels": 0,
