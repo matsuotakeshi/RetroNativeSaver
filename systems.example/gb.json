@@ -13,7 +13,7 @@
   "core": "C:\\RetroArch-win64\\cores\\gambatte_libretro.dll",
   "system_dir": "C:\\RetroArch-win64\\system",
   "archive_mode": "extract",
-  "max_concurrent": 1,
+  "max_concurrent": 6,
   "render_backend": "software",
   "exclude_name_contains": [
     "[BIOS]",

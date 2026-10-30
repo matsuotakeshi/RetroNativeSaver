@@ -14,7 +14,7 @@
   "system_dir": "C:\\RetroArch-win64\\system",
   "archive_mode": "extract",
   "recursive": true,
-  "max_concurrent": 2,
+  "max_concurrent": 6,
   "render_backend": "software",
   "exclude_name_contains": [
     "[BIOS]",
