@@ -10,7 +10,24 @@ from startup_timing import span
 from title_metadata import _title_key
 
 
+def is_msx_boot_candidate(system: dict, path: Path) -> bool:
+    """Keep unnumbered content; only Disk 1/A starts a numbered MSX disk set.
+
+    Share the existing computer disk-label parser, including the priority of
+    "Disk 1 of N" over secondary labels. Never infer dump quality from [a].
+    ZIP members are checked again when extracted; no archive reads are needed
+    when loading an existing fixed catalog.
+    """
+    if system.get("id") != "msx" or path.suffix.lower() not in {".dsk", ".zip"}:
+        return True
+    from computer_disks import identity
+    disk = identity(path)
+    return disk is None or disk[1] == 1
+
+
 def should_exclude_rom(system: dict, path: Path) -> bool:
+    if not is_msx_boot_candidate(system, path):
+        return True
     name = path.name.lower()
 
     # Global safety defaults: BIOS/boot ROM dumps should not be launched as games.
@@ -129,6 +146,7 @@ def scan_roms(system: dict, progress=None):
                     has_supported_content = any(
                         not info.is_dir()
                         and Path(info.filename).suffix.lower() in content_exts
+                        and is_msx_boot_candidate(system, Path(info.filename))
                         for info in zf.infolist()
                     )
                 if not has_supported_content:

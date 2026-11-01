@@ -63,11 +63,11 @@ class PresentationRoutingTests(unittest.TestCase):
                     self.assertEqual(scheduler.call_args.args[3],original)
                 self.assertIsInstance(win.tile_layout,tile_layout.Controller)
 
-    def test_fbneo_new_grid_remains_within_32_tiles(self):
+    def test_fbneo_new_grid_uses_64_tile_limit(self):
         _,error,scheduler,_,_,_=self.run_main(['fbneo'],config={'tile_rows':4})
         self.assertIsNone(error)
-        self.assertEqual(len(scheduler.call_args.args[2]),18)
-        self.assertEqual(scheduler.call_args.args[3][0]['max_concurrent'],18)
+        self.assertEqual(len(scheduler.call_args.args[2]),64)
+        self.assertEqual(scheduler.call_args.args[3][0]['max_concurrent'],64)
 
     def test_explicit_small_grid_keeps_group_on_more_than_two_displays(self):
         _,error,scheduler,_,_,_=self.run_main('gb',monitors=[(0,0,1920,1080)]*3,config={'tile_rows':1})
@@ -109,18 +109,18 @@ class PresentationRoutingTests(unittest.TestCase):
         self.assertTrue(all(s['max_concurrent']==64 for s in scheduler.call_args.args[3]))
         self.assertEqual(set(scheduler.call_args.args[4]),{'megadrive','megacd'})
 
-    def test_fbneo_main_routes_16_plus_16_with_capacity_32(self):
+    def test_fbneo_main_routes_28_plus_36_with_capacity_64(self):
         result,error,scheduler,win,original,catalogs=self.run_main(['fbneo'])
         self.assertIsNone(error);self.assertEqual(result,0);win.close.assert_called_once()
         rects=scheduler.call_args.args[2]
-        self.assertEqual(len(rects),32)
-        self.assertEqual(sum(x<1920 for x,y,w,h in rects),16)
-        self.assertEqual(sum(x>=1920 for x,y,w,h in rects),16)
+        self.assertEqual(len(rects),64)
+        self.assertEqual(sum(x<1920 for x,y,w,h in rects),28)
+        self.assertEqual(sum(x>=1920 for x,y,w,h in rects),36)
         self.assertEqual([s['id'] for s in scheduler.call_args.args[3]],['fbneo'])
-        self.assertEqual(scheduler.call_args.args[3][0]['max_concurrent'],32)
+        self.assertEqual(scheduler.call_args.args[3][0]['max_concurrent'],64)
 
     def test_explicit_fbneo_windowed_over_limit_closes_without_starting_children(self):
-        argv=['--worker','--windowed','--slots','33','--presentation','single-system','--system','fbneo']
+        argv=['--worker','--windowed','--slots','65','--presentation','single-system','--system','fbneo']
         result,error,scheduler,win,_,_=self.run_main(['fbneo'],argv=argv)
         self.assertIsInstance(error,ValueError);scheduler.assert_not_called();win.close.assert_called_once()
 

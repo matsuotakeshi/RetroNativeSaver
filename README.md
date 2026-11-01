@@ -2,7 +2,7 @@
 
 # RetroNativeSaver
 
-A Windows screensaver that displays multiple games in a tiled layout. Each tile runs a libretro core in its own child process. Grouped mode supports **up to 64 simultaneous game displays across multiple monitors**. Current version: **v0.22.4**.
+A Windows screensaver that displays multiple games in a tiled layout. Each tile runs a libretro core in its own child process. Grouped mode supports **up to 64 simultaneous game displays across multiple monitors**. Current version: **v0.22.6**.
 
 The project is licensed under **GNU GPL v3 (GPL-3.0-only)**. Third-party code, including X1/libretro components, retains its [own licenses](THIRD_PARTY_NOTICES.md).
 
@@ -61,7 +61,7 @@ In grouped mode, the following two-monitor setup provides 64 tiles:
 | 2560×1080 | 9×4 | 36 |
 | **Total** | | **64** |
 
-The tile count is determined by each monitor's resolution. Grouped mode normally uses a 7×4 grid for resolutions other than 2560×1080. The FBNeo-only group uses 4×4 tiles per monitor to reduce load, for a total of 32 tiles on two monitors. If the monitor arrangement would exceed the grouped-mode tile limit, the screensaver falls back to normal mode. Normal mode chooses its tile count based on resolution and `max_slots_per_monitor`.
+The tile count is determined by each monitor's resolution. Grouped mode normally uses a 7×4 grid for resolutions other than 2560×1080. From v0.22.5, FBNeo uses the same layout and 64-tile total limit as other groups. If the monitor arrangement would exceed the grouped-mode tile limit, the screensaver falls back to normal mode. Normal mode chooses its tile count based on resolution and `max_slots_per_monitor`.
 
 ## Independent, asynchronous rotation
 
@@ -106,6 +106,8 @@ After adding or moving ROMs, manually update the catalog with `update_rom_catalo
 
 X1 support uses a custom core build for two drives. The DLL is not included in Git. Follow the [build instructions](cores/X1_BUILD.md) to prepare `cores/x1_rns_libretro.dll`. Other systems use externally supplied libretro cores.
 
+For MSX / MSX2 (`id: "msx"`), explicitly numbered disk filenames are eligible only for `Disk 1` / `Disk A` (`Disc` is also accepted). `Disk 1 of N` takes priority over secondary labels. This applies to `.dsk` files, numbered `.zip` filenames, and disk members selected during ZIP extraction. Existing fixed catalogs are filtered when loaded; no catalog refresh is required. Unnumbered files and cartridges retain their existing behavior. Dump variants such as `[a]` are not classified as good or bad. This does not automate later disk exchanges or user-disk prompts.
+
 For PC-98, X1, X68000 and FM-7 with `disk_boot_mode: "computer_two_drives"`, `Disk 1 of N` / `Disk 2 of N` take priority over a secondary disk label. Without that notation, `Disk 1` / `Disk 2` or `Disk A` / `Disk B` select drives 1 and 2. Recognized role notes such as `(System)` and `(Disk 1)` are ignored when matching an explicitly numbered set; edition and dump annotations remain part of the match. An ambiguous set or a missing boot disk is rejected.
 
 ## Controls
@@ -133,7 +135,7 @@ Scrolling is enabled by default, including when updating an existing configurati
 
 **General → Tile rows** controls both normal and grouped fullscreen layouts. `tile_rows: 0` (the default, including when absent) retains the previous automatic layouts until PageUp or PageDown is used. `1` means one fullscreen tile per display. From `2` upward, each display's width/height ratio determines its columns, producing approximately square cells while the game keeps its own aspect ratio. For example, four rows give 7×4 tiles at 1920×1080 and 9×4 at 2560×1080.
 
-Cells are at least 270 physical pixels high (the existing 1080-pixel, four-row grid), unless the entire display is smaller. Requested rows are reduced as necessary for display resolution and the 64-tile total limit (32 for the FBNeo-only group). The old `max_slots_per_monitor` option applies only to the legacy normal layout; machine concurrency and resource-weight limits still apply to the new normal layout. Some cells can remain empty when those limits prevent additional games. From v0.22.4, the example settings allow up to six simultaneous games each for Game Boy, Game Boy Color, Game Gear, Master System, Mega Drive, NES, SNES, PC Engine and SG-1000, providing more capacity for a 64-tile normal layout. The normal `heavy_cd.max_weight` example remains 7. Available ROMs, favorite reservations and startup failures can still affect how many cells fill. **Existing installations:** the update preserves `systems/*.json`; replacing the EXE/SCR does not change these limits. To apply the same adjustment, open **System settings → Display / load**, set the normal simultaneous-game limit (`max_concurrent`) to `6` for these nine systems, save, and restart the saver. Keep your ROM/core paths and other settings.
+Cells are at least 270 physical pixels high (the existing 1080-pixel, four-row grid), unless the entire display is smaller. Requested rows are reduced as necessary for display resolution and the 64-tile total limit. The old `max_slots_per_monitor` option applies only to the legacy normal layout; machine concurrency and resource-weight limits still apply to the new normal layout. Some cells can remain empty when those limits prevent additional games. From v0.22.4, the example settings allow up to six simultaneous games each for Game Boy, Game Boy Color, Game Gear, Master System, Mega Drive, NES, SNES, PC Engine and SG-1000, providing more capacity for a 64-tile normal layout. The normal `heavy_cd.max_weight` example remains 7. Available ROMs, favorite reservations and startup failures can still affect how many cells fill. **Existing installations:** the update preserves `systems/*.json`; replacing the EXE/SCR does not change these limits. To apply the same adjustment, open **System settings → Display / load**, set the normal simultaneous-game limit (`max_concurrent`) to `6` for these nine systems, save, and restart the saver. Keep your ROM/core paths and other settings.
 
 With `tile_resize_keys_enabled: true` (default), PageUp increases rows and PageDown decreases rows on all displays together. Each press changes one row; held-key auto-repeat is ignored. Rapid presses are combined for saving, then only `tile_rows` is merged into the latest JSON with backup and atomic replacement. A save failure keeps the current layout and is reported in the optional log. With asynchronous tiles, surviving games continue, excess processes are safely stopped, and added cells start normally. Synchronous mode starts a new cycle using its existing safe cleanup/recycle path. Preview, windowed tests, and explicit `--slots` commands keep their original layout and wheel-to-exit behavior. The mouse wheel always exits the saver. Setting `tile_resize_keys_enabled: false` makes PageUp/PageDown exit too. The old v0.22.1 `tile_wheel_enabled` value is only a fallback for the new enable/disable setting; it never assigns the wheel.
 

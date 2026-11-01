@@ -261,37 +261,51 @@ class GroupedModeTests(unittest.TestCase):
             with self.assertRaises(ValueError):mode.scheduler_config(cfg)
             self.assertEqual(cfg['resource_groups']['heavy_cd']['max_weight'],7)
 
-    def test_fbneo_fills_both_monitors_with_sixteen_cells_each(self):
+    def test_fbneo_uses_common_64_tile_layout_and_explicit_rows(self):
+        from tile_layout import plan
         system=next(s for s in self.systems if s['id']=='fbneo')
         monitors=[(-1920,-1080,0,0),(0,0,2560,1080)]
         rects=mode.monitor_slots(monitors,-1920,-1080,systems=[system])
-        self.assertEqual(len(rects),32)
-        for cells,x0,y0,width in ((rects[:16],0,0,1920),(rects[16:],1920,1080,2560)):
+        self.assertEqual(len(rects),64)
+        for cells,x0,y0,width,cols in ((rects[:28],0,0,1920,7),(rects[28:],1920,1080,2560,9)):
             self.assertEqual(sum(w*h for x,y,w,h in cells),width*1080)
-            self.assertEqual({x for x,y,w,h in cells},{x0+width*i//4 for i in range(4)})
+            self.assertEqual({x for x,y,w,h in cells},{x0+width*i//cols for i in range(cols)})
             self.assertEqual({y for x,y,w,h in cells},{y0+1080*i//4 for i in range(4)})
-        reversed_rects=mode.monitor_slots(list(reversed(monitors)),-1920,-1080,systems=[system])
-        self.assertEqual(set(reversed_rects),set(rects))
-        self.assertEqual(len(mode.monitor_slots(monitors[:1],-1920,-1080,systems=[system])),16)
+        self.assertEqual(set(mode.monitor_slots(list(reversed(monitors)),-1920,-1080,systems=[system])),set(rects))
+        self.assertEqual(len(mode.monitor_slots(monitors[:1],-1920,-1080,systems=[system])),28)
         self.assertIsNone(mode.monitor_slots(monitors+[monitors[0]],-1920,-1080,systems=[system]))
+        self.assertEqual(plan(monitors,(-1920,-1080),4,limit=mode.tile_limit([system]))[1],rects)
         for group in mode.DEFAULT_GROUPS:
-            if group==('fbneo',):continue
             selected=[s for s in self.systems if s['id'] in group]
             self.assertEqual(len(mode.monitor_slots(monitors,-1920,-1080,systems=selected)),64)
 
-    def test_fbneo_capacity_is_32_without_changing_neocd_or_source_settings(self):
-        system=next(s for s in self.systems if s['id']=='fbneo');before=copy.deepcopy(system)
-        catalogs={'fbneo':[Path(f'{i}.zip') for i in range(64)]}
-        selected,filtered=mode.scheduler_inputs([system],catalogs,32)
-        self.assertEqual(selected[0]['max_concurrent'],32);self.assertEqual(system,before)
-        with self.assertRaises(ValueError):mode.scheduler_inputs([system],catalogs,33)
-        occupied=[(selected[0],Path(f'{i}.zip')) for i in range(32)]
-        self.assertIsNone(select_slot(32,selected,filtered,mode.scheduler_config(self.cfg),occupied,[],set(),set()))
-        neo=next(s for s in self.systems if s['id']=='neocd')
-        selected,_=mode.scheduler_inputs([neo],{'neocd':[Path('a.chd')]},64)
+    def test_fbneo_64_capacity_keeps_resource_budget_and_source_settings(self):
+        system=next(s for s in self.systems if s['id']=='fbneo')
+        system.update(resource_group='heavy_cd',resource_weight=1)
+        before=copy.deepcopy(system)
+        catalogs={'fbneo':[Path(f'{i}.zip') for i in range(65)]}
+        selected,filtered=mode.scheduler_inputs([system],catalogs,64)
         self.assertEqual(selected[0]['max_concurrent'],64)
+        self.assertEqual(system,before)
+        with self.assertRaises(ValueError):mode.scheduler_inputs([system],catalogs,65)
+        cfg=mode.scheduler_config(self.cfg)
+        occupied=[]
+        for i in range(64):
+            pick=select_slot(i,selected,filtered,cfg,occupied,[],set(),set(),rng=random.Random(i))
+            self.assertIsNotNone(pick)
+            occupied.append(pick)
+        self.assertIsNone(select_slot(64,selected,filtered,cfg,occupied,[],set(),set()))
+        # A smaller grouped resource budget still prevents extra instances.
+        cfg['resource_groups']['heavy_cd']['max_weight']=32
+        self.assertIsNone(select_slot(32,selected,filtered,cfg,occupied[:32],[],set(),set()))
+        self.assertEqual(self.cfg['resource_groups']['heavy_cd']['max_weight'],7)
+        selected[0]['resource_weight']=2
+        cfg['resource_groups']['heavy_cd']['max_weight']=64
+        self.assertIsNone(select_slot(32,selected,filtered,cfg,occupied[:32],[],set(),set()))
+        neo=next(s for s in self.systems if s['id']=='neocd')
         selected,_=mode.scheduler_inputs([system,neo],dict(catalogs,neocd=[Path('a.chd')]),64)
-        self.assertEqual([s['max_concurrent'] for s in selected],[32,64])
+        self.assertEqual([s['max_concurrent'] for s in selected],[64,64])
+        self.assertEqual(system,before)
 
 
 if __name__=='__main__':unittest.main()

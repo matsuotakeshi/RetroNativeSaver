@@ -71,6 +71,13 @@ def cached_roms(system, saved, catalogs):
         print(f"[fixed-catalog] [{system['id']}] ROM directory unavailable", flush=True)
         return []
     roms = [Path(pair[0]) for pair in item['roms']]
+    if system['id'] == 'msx':
+        # Filter old snapshots in memory without a rescan or format change.
+        from rom_catalog import is_msx_boot_candidate
+        roms = [path for path in roms if is_msx_boot_candidate(system, path)]
+        removed = len(item['roms']) - len(roms)
+        if removed:
+            print(f"[fixed-catalog] [{system['id']}] secondary disks omitted={removed}", flush=True)
     catalogs.canonical_paths.update(item['roms'])
     system['_fixed_rom_catalog'] = True
     print(f"[fixed-catalog] [{system['id']}] loaded {len(roms)} ROM(s)", flush=True)

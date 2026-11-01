@@ -16,7 +16,6 @@ DEFAULT_GROUPS = (
 SUPPORTED = tuple(sid for group in DEFAULT_GROUPS for sid in group)
 SESSION_KEY = '_single_system_session'
 MAX_TILES = 64
-FBNEO_MAX_TILES = 32
 
 
 def presentation_probability(options):
@@ -139,7 +138,7 @@ def selected_systems(cfg, systems, catalogs):
 
 
 def tile_limit(systems):
-    return FBNEO_MAX_TILES if {s['id'] for s in systems} == {'fbneo'} else MAX_TILES
+    return MAX_TILES
 
 
 def monitor_slots(monitor_rects, virtual_left, virtual_top, gap_pixels=0, *, systems=()):
@@ -151,10 +150,7 @@ def monitor_slots(monitor_rects, virtual_left, virtual_top, gap_pixels=0, *, sys
         width, height = right-left, bottom-top
         if width <= 0 or height <= 0:
             return None
-        if limit == FBNEO_MAX_TILES:
-            cols, rows = 4, 4
-        else:
-            cols, rows = (9, 4) if (width, height) == (2560, 1080) else (7, 4)
+        cols, rows = (9, 4) if (width, height) == (2560, 1080) else (7, 4)
         plans.append((left-virtual_left, top-virtual_top, width, height, cols, rows))
     if not plans or sum(cols*rows for _, _, _, _, cols, rows in plans) > limit:
         print(f'[presentation] layout exceeds {limit} tiles; using normal layout/mode', flush=True)
@@ -177,7 +173,7 @@ def scheduler_inputs(systems, catalogs, count):
     if not 1 <= count <= limit:
         raise ValueError(f'Grouped tile count must be between 1 and {limit}')
     from fixed_rom_catalog import filtered_catalogs
-    chosen = [dict(system, max_concurrent=min(count, FBNEO_MAX_TILES) if system['id'] == 'fbneo' else count)
+    chosen = [dict(system, max_concurrent=count)
               for system in systems]
     # No mutation of the loaded system dict or original JSON. This also restricts
     # favorite matching, replacement retries and UI actions to the same hardware.

@@ -124,7 +124,7 @@ class SettingsDialog:
                 self.variables[field.path], self.controls[field.path] = var, control
                 self.initial[field.path] = var.get()
             if fields is GENERAL:
-                ttk.Label(page, text=_tr('タイル数は全画面表示に適用します。横の列数は画面比率から自動計算します。\n最小高さ270px、全画面合計64枠（FBNeoグループは32枠）以内に調整します。\nPageUp（ロールアップ）で段数を増やし、PageDown（ロールダウン）で減らして保存します。1段は各画面に1枠です。'),
+                ttk.Label(page, text=_tr('タイル数は全画面表示に適用します。横の列数は画面比率から自動計算します。\n最小高さ270px、全画面合計64枠以内に調整します。\nPageUp（ロールアップ）で段数を増やし、PageDown（ロールダウン）で減らして保存します。1段は各画面に1枠です。'),
                           wraplength=700, foreground='#555555').grid(row=len(fields)+1, column=0, columnspan=2, sticky='w', pady=12)
             if fields is GROUP:
                 box = ttk.LabelFrame(page, text=_tr('グループ内で抽選する機種（通常表示には影響しません）'), padding=10)

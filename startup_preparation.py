@@ -156,6 +156,14 @@ def prepare_rom(system: dict, rom_path: Path, temp_root: Path) -> Path:
                 and (not content_exts or Path(n).suffix.lower() in content_exts)
             ]
 
+            from rom_catalog import is_msx_boot_candidate
+            boot_candidates = [n for n in candidates
+                               if is_msx_boot_candidate(system, Path(n))]
+            if candidates and not boot_candidates:
+                # Do not let auto mode pass a data-disk-only archive to the core.
+                raise RuntimeError(f"No MSX boot disk (Disk 1/A) found in ZIP: {rom_path}")
+            candidates = boot_candidates
+
             if not candidates:
                 if mode == "auto":
                     return rom_path
